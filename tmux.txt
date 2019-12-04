@@ -4,7 +4,7 @@ NAME
      tmux - terminal multiplexer
 
 SYNOPSIS
-     tmux [-28lCquvV] [-c shell-command] [-f file] [-L socket-name]
+     tmux [-2lCquvV] [-c shell-command] [-f file] [-L socket-name]
 	  [-S socket-path] [command [flags]]
 
 DESCRIPTION
@@ -40,10 +40,8 @@ DESCRIPTION
 
      -2		   Force tmux to assume the terminal supports 256 colours.
 
-     -8		   Like -2, but indicates that the terminal supports 88
-		   colours.
-
-     -C		   Start in control mode.  Given twice (-CC) disables echo.
+     -C		   Start in control mode (see the CONTROL MODE section).
+		   Given twice (-CC) disables echo.
 
      -c shell-command
 		   Execute shell-command using the default shell.  If neces-
@@ -53,8 +51,8 @@ DESCRIPTION
 
      -f file	   Specify an alternative configuration file.  By default,
 		   tmux loads the system configuration file from
-		   /etc/tmux.conf, if present, then looks for a user configu-
-		   ration file at ~/.tmux.conf.
+		   @SYSCONFDIR@/tmux.conf, if present, then looks for a user
+		   configuration file at ~/.tmux.conf.
 
 		   The configuration file is a set of tmux commands which are
 		   executed in sequence when the server is first started.
@@ -67,12 +65,13 @@ DESCRIPTION
 		   process the rest of the configuration file.
 
      -L socket-name
-		   tmux stores the server socket in a directory under /tmp (or
-		   TMPDIR if set); the default socket is named default.	 This
-		   option allows a different socket name to be specified,
-		   allowing several independent tmux servers to be run.
-		   Unlike -S a full path is not necessary: the sockets are all
-		   created in the same directory.
+		   tmux stores the server socket in a directory under
+		   TMUX_TMPDIR, TMPDIR if it is unset, or /tmp if both are
+		   unset.  The default socket is named default.	 This option
+		   allows a different socket name to be specified, allowing
+		   several independent tmux servers to be run.	Unlike -S a
+		   full path is not necessary: the sockets are all created in
+		   the same directory.
 
 		   If the socket is accidentally removed, the SIGUSR1 signal
 		   may be sent to the tmux server process to recreate it.
@@ -294,7 +293,7 @@ CLIENTS AND SESSIONS
 
      The following commands are available to manage clients and sessions:
 
-     attach-session [-dr] [-t target-session]
+     attach-session [-dr] [-c working-directory] [-t target-session]
 		   (alias: attach)
 	     If run from outside tmux, create a new client in the current ter-
 	     minal and attach it to target-session.  If used from inside,
@@ -310,6 +309,9 @@ CLIENTS AND SESSIONS
 	     The target-session rules for attach-session are slightly
 	     adjusted: if tmux needs to select the most recently used session,
 	     it will prefer the most recently used unattached session.
+
+	     -c will set the session working directory (used for new windows)
+	     to working-directory.
 
      detach-client [-P] [-a] [-s target-session] [-t target-client]
 		   (alias: detach)
@@ -327,11 +329,10 @@ CLIENTS AND SESSIONS
      kill-server
 	     Kill the tmux server and clients and destroy all sessions.
 
-     kill-session
-	     [-a] [-t target-session] Destroy the given session, closing any
-	     windows linked to it and no other sessions, and detaching all
-	     clients attached to it.  If -a is given, all sessions but the
-	     specified one is killed.
+     kill-session [-a] [-t target-session]
+	     Destroy the given session, closing any windows linked to it and
+	     no other sessions, and detaching all clients attached to it.  If
+	     -a is given, all sessions but the specified one is killed.
 
      list-clients [-F format] [-t target-session]
 		   (alias: lsc)
@@ -356,8 +357,9 @@ CLIENTS AND SESSIONS
 		   (alias: locks)
 	     Lock all clients attached to target-session.
 
-     new-session [-AdDP] [-F format] [-n window-name] [-s session-name] [-t
-	     target-session] [-x width] [-y height] [shell-command]
+     new-session [-AdDP] [-c start-directory] [-F format] [-n window-name] [-s
+	     session-name] [-t target-session] [-x width] [-y height]
+	     [shell-command]
 		   (alias: new)
 	     Create a new session with name session-name.
 
@@ -397,12 +399,14 @@ CLIENTS AND SESSIONS
 		   (alias: rename)
 	     Rename the session to new-name.
 
-     show-messages [-t target-client]
+     show-messages [-IJT] [-t target-client]
 		   (alias: showmsgs)
-	     Any messages displayed on the status line are saved in a per-
-	     client message log, up to a maximum of the limit set by the
-	     message-limit session option for the session attached to that
-	     client.  This command displays the log for target-client.
+	     Show client messages or server information.  Any messages dis-
+	     played on the status line are saved in a per-client message log,
+	     up to a maximum of the limit set by the message-limit session
+	     option for the session attached to that client.  With -t, display
+	     the log for target-client.	 -I, -J and -T show debugging informa-
+	     tion about the running server, jobs and terminals.
 
      source-file path
 		   (alias: source)
@@ -466,6 +470,7 @@ WINDOWS AND PANES
 	   Next space, end of word	E
 	   Next word			w
 	   Next word end		e		M-f
+	   Other end of selection	o
 	   Paste buffer			p		C-y
 	   Previous page		C-b		Page up
 	   Previous word		b		M-b
@@ -767,14 +772,7 @@ WINDOWS AND PANES
 	     flag is used, in which case it is destroyed.  shell-command is
 	     the command to execute.  If shell-command is not specified, the
 	     value of the default-command option is used.  -c specifies the
-	     working directory in which the new window is created.  It may
-	     have an absolute path or one of the following values (or a subdi-
-	     rectory):
-
-		   Empty string	   Current pane’s directory
-		   ~		   User’s home directory
-		   -		   Where session was started
-		   .		   Where server was started
+	     working directory in which the new window is created.
 
 	     When the shell command completes, the window closes.  See the
 	     remain-on-exit option to change this behaviour.
@@ -1006,15 +1004,28 @@ OPTIONS
 	     command), a server option with -s, otherwise a session option.
 
 	     If -g is specified, the global session or window option is set.
-	     With -a, and if the option expects a string, value is appended to
-	     the existing setting.  The -u flag unsets an option, so a session
-	     inherits the option from the global options.  It is not possible
-	     to unset a global option.
+	     The -u flag unsets an option, so a session inherits the option
+	     from the global options.  It is not possible to unset a global
+	     option.
 
 	     The -o flag prevents setting an option that is already set.
 
 	     The -q flag suppresses the informational message (as if the quiet
 	     server option was set).
+
+	     With -a, and if the option expects a string or a style, value is
+	     appended to the existing setting.	For example:
+
+		   set -g status-left "foo"
+		   set -ag status-left "bar"
+
+	     Will result in ‘foobar’.  And:
+
+		   set -g status-style "bg=red"
+		   set -ag status-style "fg=blue"
+
+	     Will result in a red background and blue foreground.  Without -a,
+	     the result would be the default background and a blue foreground.
 
 	     Available window options are listed under set-window-option.
 
@@ -1037,6 +1048,12 @@ OPTIONS
 	     exit-unattached [on | off]
 		     If enabled, the server will exit when there are no
 		     attached clients.
+
+	     focus-events [on | off]
+		     When enabled, focus events are requested from the termi-
+		     nal if supported and passed through to applications run-
+		     ning in tmux.  Attached clients should be detached and
+		     attached again after changing this option.
 
 	     quiet [on | off]
 		     Enable or disable the display of various informational
@@ -1084,14 +1101,6 @@ OPTIONS
 		     be any sh(1) command.  The default is an empty string,
 		     which instructs tmux to create a login shell using the
 		     value of the default-shell option.
-
-	     default-path path
-		     Set the default working directory for new panes.  If
-		     empty (the default), the working directory is determined
-		     from the process running in the active pane, from the
-		     command line environment or from the working directory
-		     where the session was created.  Otherwise the same
-		     options are available as for the -c flag to new-window.
 
 	     default-shell path
 		     Specify the default shell.	 This is used as the login
@@ -1159,38 +1168,41 @@ OPTIONS
 		     sessions would have locked.  This has no effect as a ses-
 		     sion option; it must be set as a global option.
 
-	     message-attr attributes
-		     Set status line message attributes, where attributes is
-		     either none or a comma-delimited list of one or more of:
-		     bright (or bold), dim, underscore, blink, reverse,
-		     hidden, or italics.
+	     message-command-style style
+		     Set status line message command style, where style is a
+		     comma-separated list of characteristics to be specified.
 
-	     message-bg colour
-		     Set status line message background colour, where colour
-		     is one of: black, red, green, yellow, blue, magenta,
-		     cyan, white, aixterm bright variants (if supported:
-		     brightred, brightgreen, and so on), colour0 to colour255
-		     from the 256-colour set, default, or a hexadecimal RGB
-		     string such as ‘#ffffff’, which chooses the closest match
-		     from the default 256-colour set.
+		     These may be ‘bg=colour’ to set the background colour,
+		     ‘fg=colour’ to set the foreground colour, and a list of
+		     attributes as specified below.
 
-	     message-command-attr attributes
-		     Set status line message attributes when in command mode.
+		     The colour is one of: black, red, green, yellow, blue,
+		     magenta, cyan, white, aixterm bright variants (if sup-
+		     ported: brightred, brightgreen, and so on), colour0 to
+		     colour255 from the 256-colour set, default, or a hexadec-
+		     imal RGB string such as ‘#ffffff’, which chooses the
+		     closest match from the default 256-colour set.
 
-	     message-command-bg colour
-		     Set status line message background colour when in command
-		     mode.
+		     The attributes is either none or a comma-delimited list
+		     of one or more of: bright (or bold), dim, underscore,
+		     blink, reverse, hidden, or italics, to turn an attribute
+		     on, or an attribute prefixed with ‘no’ to turn one off.
 
-	     message-command-fg colour
-		     Set status line message foreground colour when in command
-		     mode.
+		     Examples are:
 
-	     message-fg colour
-		     Set status line message foreground colour.
+			   fg=yellow,bold,underscore,blink
+			   bg=black,fg=default,noreverse
+
+		     With the -a flag to the set-option command the new style
+		     is added otherwise the existing style is replaced.
 
 	     message-limit number
 		     Set the number of error or information messages to save
 		     in the message log for each client.  The default is 20.
+
+	     message-style style
+		     Set status line message style.  For how to specify style,
+		     see the message-command-style option.
 
 	     mouse-resize-pane [on | off]
 		     If on, tmux captures the mouse and allows panes to be
@@ -1210,16 +1222,15 @@ OPTIONS
 		     If enabled, request mouse input as UTF-8 on UTF-8 termi-
 		     nals.
 
-	     pane-active-border-bg colour
+	     pane-active-border-style style
+		     Set the pane border style for the currently active pane.
+		     For how to specify style, see the message-command-style
+		     option.  Attributes are ignored.
 
-	     pane-active-border-fg colour
-		     Set the pane border colour for the currently active pane.
-
-	     pane-border-bg colour
-
-	     pane-border-fg colour
-		     Set the pane border colour for panes aside from the
-		     active pane.
+	     pane-border-style style
+		     Set the pane border style for paneas aside from the
+		     active pane.  For how to specify style, see the
+		     message-command-style option.  Attributes are ignored.
 
 	     prefix key
 		     Set the key accepted as a prefix key.
@@ -1265,15 +1276,6 @@ OPTIONS
 	     status [on | off]
 		     Show or hide the status line.
 
-	     status-attr attributes
-		     Set status line attributes.
-
-	     status-bg colour
-		     Set status line background colour.
-
-	     status-fg colour
-		     Set status line foreground colour.
-
 	     status-interval interval
 		     Update the status bar every interval seconds.  By
 		     default, updates will occur every 15 seconds.  A setting
@@ -1290,25 +1292,16 @@ OPTIONS
 		     and contain the string ‘vi’.
 
 	     status-left string
-		     Display string to the left of the status bar.  string
-		     will be passed through strftime(3) before being used.  By
-		     default, the session name is shown.  string may contain
-		     any of the following special character sequences:
+		     Display string (by default the session name) to the left
+		     of the status bar.	 string will be passed through
+		     strftime(3) and formats (see FORMATS) will be expanded.
+		     It may also contain any of the following special charac-
+		     ter sequences:
 
 			   Character pair    Replaced with
 			   #(shell-command)  First line of the command’s
 							      output
 			   #[attributes]     Colour or attribute change
-			   #H		     Hostname of local host
-			   #h		     Hostname of local host without
-							      the domain name
-			   #F		     Current window flag
-			   #I		     Current window index
-			   #D		     Current pane unique identifier
-			   #P		     Current pane index
-			   #S		     Session name
-			   #T		     Current pane title
-			   #W		     Current window name
 			   ##		     A literal ‘#’
 
 		     The #(shell-command) form executes ‘shell-command’ and
@@ -1320,15 +1313,10 @@ OPTIONS
 		     ment set (see the ENVIRONMENT section).
 
 		     For details on how the names and titles can be set see
-		     the NAMES AND TITLES section.
+		     the NAMES AND TITLES section.  For a list of allowed
+		     attributes see the message-command-style option.
 
-		     #[attributes] allows a comma-separated list of attributes
-		     to be specified, these may be ‘fg=colour’ to set the
-		     foreground colour, ‘bg=colour’ to set the background
-		     colour, the name of one of the attributes (listed under
-		     the message-attr option) to turn an attribute on, or an
-		     attribute prefixed with ‘no’ to turn one off, for example
-		     nobright.	Examples are:
+		     Examples are:
 
 			   #(sysctl vm.loadavg)
 			   #[fg=yellow,bold]#(apm -l)%%#[default] [#S]
@@ -1340,20 +1328,14 @@ OPTIONS
 		     By default, UTF-8 in string is not interpreted, to enable
 		     UTF-8, use the status-utf8 option.
 
-	     status-left-attr attributes
-		     Set the attribute of the left part of the status line.
-
-	     status-left-bg colour
-		     Set the background colour of the left part of the status
-		     line.
-
-	     status-left-fg colour
-		     Set the foreground colour of the left part of the status
-		     line.
-
 	     status-left-length length
 		     Set the maximum length of the left component of the sta-
 		     tus bar.  The default is 10.
+
+	     status-left-style style
+		     Set the style of the left part of the status line.	 For
+		     how to specify style, see the message-command-style
+		     option.
 
 	     status-position [top | bottom]
 		     Set the position of the status line.
@@ -1366,20 +1348,18 @@ OPTIONS
 		     replaced, and UTF-8 is dependent on the status-utf8
 		     option.
 
-	     status-right-attr attributes
-		     Set the attribute of the right part of the status line.
-
-	     status-right-bg colour
-		     Set the background colour of the right part of the status
-		     line.
-
-	     status-right-fg colour
-		     Set the foreground colour of the right part of the status
-		     line.
-
 	     status-right-length length
 		     Set the maximum length of the right component of the sta-
 		     tus bar.  The default is 40.
+
+	     status-right-style style
+		     Set the style of the right part of the status line.  For
+		     how to specify style, see the message-command-style
+		     option.
+
+	     status-style style
+		     Set status line style.  For how to specify style, see the
+		     message-command-style option.
 
 	     status-utf8 [on | off]
 		     Instruct tmux to treat top-bit-set characters in the
@@ -1403,10 +1383,10 @@ OPTIONS
 
 		     The terminal entry value is passed through strunvis(3)
 		     before interpretation.  The default value forcibly cor-
-		     rects the ‘colors’ entry for terminals which support 88
-		     or 256 colours:
+		     rects the ‘colors’ entry for terminals which support 256
+		     colours:
 
-			   "*88col*:colors=88,*256col*:colors=256,xterm*:XT"
+			   "*256col*:colors=256,xterm*:XT"
 
 	     update-environment variables
 		     Set a space-separated string containing a list of envi-
@@ -1445,10 +1425,10 @@ OPTIONS
 		     previous word commands in copy mode.  The default is
 		     ‘ -_@’.
 
-     set-window-option [-agqu] [-t target-window] option value
+     set-window-option [-agoqu] [-t target-window] option value
 		   (alias: setw)
-	     Set a window option.  The -a, -g, -q and -u flags work similarly
-	     to the set-option command.
+	     Set a window option.  The -a, -g, -o, -q and -u flags work simi-
+	     larly to the set-option command.
 
 	     Supported window options are:
 
@@ -1478,15 +1458,19 @@ OPTIONS
 
 	     automatic-rename [on | off]
 		     Control automatic window renaming.	 When this setting is
-		     enabled, tmux will attempt - on supported platforms - to
-		     rename the window to reflect the command currently run-
-		     ning in it.  This flag is automatically disabled for an
-		     individual window when a name is specified at creation
-		     with new-window or new-session, or later with
-		     rename-window, or with a terminal escape sequence.	 It
-		     may be switched off globally with:
+		     enabled, tmux will rename the window automatically using
+		     the format specified by automatic-rename-format.  This
+		     flag is automatically disabled for an individual window
+		     when a name is specified at creation with new-window or
+		     new-session, or later with rename-window, or with a ter-
+		     minal escape sequence.  It may be switched off globally
+		     with:
 
 			   set-window-option -g automatic-rename off
+
+	     automatic-rename-format format
+		     The format (see FORMATS) used when the automatic-rename
+		     option is enabled.
 
 	     c0-change-interval interval
 	     c0-change-trigger trigger
@@ -1496,8 +1480,8 @@ OPTIONS
 		     returns, linefeeds or backspaces) in one millisecond, it
 		     will stop updating the pane immediately and instead
 		     redraw it entirely every interval milliseconds.  This
-		     helps to prevent fast output (such as yes(1) overwhelming
-		     the terminal).  The default is a trigger of 250 and an
+		     helps to prevent fast output (such as yes(1)) overwhelm-
+		     ing the terminal.	The default is a trigger of 250 and an
 		     interval of 100.  A trigger of zero disables the rate
 		     limiting.
 
@@ -1518,15 +1502,6 @@ OPTIONS
 		     Set the width or height of the main (left or top) pane in
 		     the main-horizontal or main-vertical layouts.
 
-	     mode-attr attributes
-		     Set window modes attributes.
-
-	     mode-bg colour
-		     Set window modes background colour.
-
-	     mode-fg colour
-		     Set window modes foreground colour.
-
 	     mode-keys [vi | emacs]
 		     Use vi or emacs-style key bindings in copy and choice
 		     modes.  As with the status-keys option, the default is
@@ -1539,6 +1514,10 @@ OPTIONS
 		     select an option in choice mode.  If set to copy-mode,
 		     the mouse behaves as set to on, but cannot be used to
 		     enter copy mode.
+
+	     mode-style style
+		     Set window modes style.  For how to specify style, see
+		     the message-command-style option.
 
 	     monitor-activity [on | off]
 		     Monitor for activity in the window.  Windows with activ-
@@ -1585,77 +1564,29 @@ OPTIONS
 		     Instructs tmux to expect UTF-8 sequences to appear in
 		     this window.
 
-	     window-status-bell-attr attributes
-		     Set status line attributes for windows which have a bell
-		     alert.
+	     window-status-activity-style style
+		     Set status line style for windows with an activity alert.
+		     For how to specify style, see the message-command-style
+		     option.
 
-	     window-status-bell-bg colour
-		     Set status line background colour for windows with a bell
-		     alert.
+	     window-status-bell-style style
+		     Set status line style for windows with a bell alert.  For
+		     how to specify style, see the message-command-style
+		     option.
 
-	     window-status-bell-fg colour
-		     Set status line foreground colour for windows with a bell
-		     alert.
-
-	     window-status-content-attr attributes
-		     Set status line attributes for windows which have a con-
-		     tent alert.
-
-	     window-status-content-bg colour
-		     Set status line background colour for windows with a con-
-		     tent alert.
-
-	     window-status-content-fg colour
-		     Set status line foreground colour for windows with a con-
-		     tent alert.
-
-	     window-status-activity-attr attributes
-		     Set status line attributes for windows which have an
-		     activity (or silence) alert.
-
-	     window-status-activity-bg colour
-		     Set status line background colour for windows with an
-		     activity alert.
-
-	     window-status-activity-fg colour
-		     Set status line foreground colour for windows with an
-		     activity alert.
-
-	     window-status-attr attributes
-		     Set status line attributes for a single window.
-
-	     window-status-bg colour
-		     Set status line background colour for a single window.
-
-	     window-status-current-attr attributes
-		     Set status line attributes for the currently active win-
-		     dow.
-
-	     window-status-current-bg colour
-		     Set status line background colour for the currently
-		     active window.
-
-	     window-status-current-fg colour
-		     Set status line foreground colour for the currently
-		     active window.
+	     window-status-content-style style
+		     Set status line style for windows with a content alert.
+		     For how to specify style, see the message-command-style
+		     option.
 
 	     window-status-current-format string
 		     Like window-status-format, but is the format used when
 		     the window is the current window.
 
-	     window-status-last-attr attributes
-		     Set status line attributes for the last active window.
-
-	     window-status-last-bg colour
-		     Set status line background colour for the last active
-		     window.
-
-	     window-status-last-fg colour
-		     Set status line foreground colour for the last active
-		     window.
-
-	     window-status-fg colour
-		     Set status line foreground colour for a single window.
+	     window-status-current-style style
+		     Set status line style for the currently active window.
+		     For how to specify style, see the message-command-style
+		     option.
 
 	     window-status-format string
 		     Set the format in which the window is displayed in the
@@ -1663,9 +1594,18 @@ OPTIONS
 		     details of special character sequences available.	The
 		     default is ‘#I:#W#F’.
 
+	     window-status-last-style style
+		     Set status line style for the last active window.	For
+		     how to specify style, see the message-command-style
+		     option.
+
 	     window-status-separator string
 		     Sets the separator drawn between windows in the status
 		     line.  The default is a single space character.
+
+	     window-status-style style
+		     Set status line style for a single window.	 For how to
+		     specify style, see the message-command-style option.
 
 	     xterm-keys [on | off]
 		     If this option is set, tmux will generate xterm(1) -style
@@ -1694,96 +1634,101 @@ OPTIONS
 
 FORMATS
      Certain commands accept the -F flag with a format argument.  This is a
-     string which controls the output format of the command.  Special charac-
-     ter sequences are replaced as documented under the status-left option and
-     an additional long form is accepted.  Replacement variables are enclosed
-     in ‘#{’ and ‘}’, for example ‘#{session_name}’ is equivalent to ‘#S’.
-     Conditionals are also accepted by prefixing with ‘?’ and separating two
-     alternatives with a comma; if the specified variable exists and is not
-     zero, the first alternative is chosen, otherwise the second is used.  For
-     example ‘#{?session_attached,attached,not attached}’ will include the
-     string ‘attached’ if the session is attached and the string ‘not
-     attached’ if it is unattached.
+     string which controls the output format of the command.  Replacement
+     variables are enclosed in ‘#{’ and ‘}’, for example ‘#{session_name}’.
+     Some variables also have an shorter alias such as ‘#S’.  ‘##’ is replaced
+     by a single ‘#’.  Conditionals are also accepted by prefixing with ‘?’
+     and separating two alternatives with a comma; if the specified variable
+     exists and is not zero, the first alternative is chosen, otherwise the
+     second is used.  For example ‘#{?session_attached,attached,not attached}’
+     will include the string ‘attached’ if the session is attached and the
+     string ‘not attached’ if it is unattached.	 A limit may be placed on the
+     length of the resultant string by prefixing it by an ‘=’, a number and a
+     colon, so ‘#{=10:pane_title}’ will include at most the first 10 charac-
+     ters of the pane title.
 
      The following variables are available, where appropriate:
 
-	   Variable name	     Replaced with
-	   alternate_on		     If pane is in alternate screen
-	   alternate_saved_x	     Saved cursor X in alternate screen
-	   alternate_saved_y	     Saved cursor Y in alternate screen
-	   buffer_sample	     First 50 characters from the specified
-						      buffer
-	   buffer_size		     Size of the specified buffer in bytes
-	   client_activity	     Integer time client last had activity
-	   client_activity_string    String time client last had activity
-	   client_created	     Integer time client created
-	   client_created_string     String time client created
-	   client_cwd		     Working directory of client
-	   client_height	     Height of client
-	   client_last_session	     Name of the client’s last session
-	   client_prefix	     1 if prefix key has been pressed
-	   client_readonly	     1 if client is readonly
-	   client_session	     Name of the client’s session
-	   client_termname	     Terminal name of client
-	   client_tty		     Pseudo terminal of client
-	   client_utf8		     1 if client supports utf8
-	   client_width		     Width of client
-	   cursor_flag		     Pane cursor flag
-	   cursor_x		     Cursor X position in pane
-	   cursor_y		     Cursor Y position in pane
-	   history_bytes	     Number of bytes in window history
-	   history_limit	     Maximum window history lines
-	   history_size		     Size of history in bytes
-	   host			     Hostname of local host
-	   insert_flag		     Pane insert flag
-	   keypad_cursor_flag	     Pane keypad cursor flag
-	   keypad_flag		     Pane keypad flag
-	   line			     Line number in the list
-	   mouse_any_flag	     Pane mouse any flag
-	   mouse_button_flag	     Pane mouse button flag
-	   mouse_standard_flag	     Pane mouse standard flag
-	   mouse_utf8_flag	     Pane mouse UTF-8 flag
-	   pane_active		     1 if active pane
-	   pane_current_command	     Current command if available
-	   pane_current_path	     Current path if available
-	   pane_dead		     1 if pane is dead
-	   pane_height		     Height of pane
-	   pane_id		     Unique pane ID
-	   pane_in_mode		     If pane is in a mode
-	   pane_index		     Index of pane
-	   pane_pid		     PID of first process in pane
-	   pane_start_command	     Command pane started with
-	   pane_start_path	     Path pane started with
-	   pane_tabs		     Pane tab positions
-	   pane_title		     Title of pane
-	   pane_tty		     Pseudo terminal of pane
-	   pane_width		     Width of pane
-	   saved_cursor_x	     Saved cursor X in pane
-	   saved_cursor_y	     Saved cursor Y in pane
-	   scroll_region_lower	     Bottom of scroll region in pane
-	   scroll_region_upper	     Top of scroll region in pane
-	   session_attached	     1 if session attached
-	   session_created	     Integer time session created
-	   session_created_string    String time session created
-	   session_group	     Number of session group
-	   session_grouped	     1 if session in a group
-	   session_height	     Height of session
-	   session_id		     Unique session ID
-	   session_name		     Name of session
-	   session_width	     Width of session
-	   session_windows	     Number of windows in session
-	   window_active	     1 if window active
-	   window_find_matches	     Matched data from the find-window command
-						      if available
-	   window_flags		     Window flags
-	   window_height	     Height of window
-	   window_id		     Unique window ID
-	   window_index		     Index of window
-	   window_layout	     Window layout description
-	   window_name		     Name of window
-	   window_panes		     Number of panes in window
-	   window_width		     Width of window
-	   wrap_flag		     Pane wrap flag
+     Variable name	    Alias    Replaced with
+     alternate_on		     If pane is in alternate screen
+     alternate_saved_x		     Saved cursor X in alternate screen
+     alternate_saved_y		     Saved cursor Y in alternate screen
+     buffer_sample		     First 50 characters from buffer
+     buffer_size		     Size of the specified buffer in bytes
+     client_activity		     Integer time client last had activity
+     client_activity_string	     String time client last had activity
+     client_created		     Integer time client created
+     client_created_string	     String time client created
+     client_height		     Height of client
+     client_last_session	     Name of the client’s last session
+     client_prefix		     1 if prefix key has been pressed
+     client_readonly		     1 if client is readonly
+     client_session		     Name of the client’s session
+     client_termname		     Terminal name of client
+     client_tty			     Pseudo terminal of client
+     client_utf8		     1 if client supports utf8
+     client_width		     Width of client
+     cursor_flag		     Pane cursor flag
+     cursor_x			     Cursor X position in pane
+     cursor_y			     Cursor Y position in pane
+     history_bytes		     Number of bytes in window history
+     history_limit		     Maximum window history lines
+     history_size		     Size of history in bytes
+     host		    #H	     Hostname of local host
+     host_short		    #h	     Hostname of local host (no domain name)
+     insert_flag		     Pane insert flag
+     keypad_cursor_flag		     Pane keypad cursor flag
+     keypad_flag		     Pane keypad flag
+     line			     Line number in the list
+     mouse_any_flag		     Pane mouse any flag
+     mouse_button_flag		     Pane mouse button flag
+     mouse_standard_flag	     Pane mouse standard flag
+     mouse_utf8_flag		     Pane mouse UTF-8 flag
+     pane_active		     1 if active pane
+     pane_current_command	     Current command if available
+     pane_current_path		     Current path if available
+     pane_dead			     1 if pane is dead
+     pane_height		     Height of pane
+     pane_id		    #D	     Unique pane ID
+     pane_in_mode		     If pane is in a mode
+     pane_synchronized		     If pane is synchronized
+     pane_index		    #P	     Index of pane
+     pane_pid			     PID of first process in pane
+     pane_start_command		     Command pane started with
+     pane_start_path		     Path pane started with
+     pane_tabs			     Pane tab positions
+     pane_title		    #T	     Title of pane
+     pane_tty			     Pseudo terminal of pane
+     pane_width			     Width of pane
+     saved_cursor_x		     Saved cursor X in pane
+     saved_cursor_y		     Saved cursor Y in pane
+     scroll_region_lower	     Bottom of scroll region in pane
+     scroll_region_upper	     Top of scroll region in pane
+     session_attached		     1 if session attached
+     session_created		     Integer time session created
+     session_created_string	     String time session created
+     session_group		     Number of session group
+     session_grouped		     1 if session in a group
+     session_height		     Height of session
+     session_id			     Unique session ID
+     session_name	    #S	     Name of session
+     session_width		     Width of session
+     session_windows		     Number of windows in session
+     window_active		     1 if window active
+     window_activity_flag	     1 if window has activity alert
+     window_bell_flag		     1 if window has bell
+     window_content_flag	     1 if window has content alert
+     window_find_matches	     Matched data from the find-window
+     window_flags	    #F	     Window flags
+     window_height		     Height of window
+     window_id			     Unique window ID
+     window_index	    #I	     Index of window
+     window_layout		     Window layout description
+     window_name	    #W	     Name of window
+     window_panes		     Number of panes in window
+     window_silence_flag	     1 if window has silence alert
+     window_width		     Width of window
+     wrap_flag			     Pane wrap flag
 
 NAMES AND TITLES
      tmux distinguishes between names and titles.  Windows and sessions have
@@ -1876,9 +1821,8 @@ STATUS LINE
      alert (bell, activity or content) is present.
 
      The colour and attributes of the status line may be configured, the
-     entire status line using the status-attr, status-fg and status-bg session
-     options and individual windows using the window-status-attr,
-     window-status-fg and window-status-bg window options.
+     entire status line using the status-style session option and individual
+     windows using the window-status-style window option.
 
      The status line is automatically refreshed at interval if it has changed,
      the interval may be controlled with the status-interval session option.
@@ -2007,7 +1951,7 @@ MISCELLANEOUS
 	     Lock each client individually by running the command specified by
 	     the lock-command option.
 
-     run-shell -b [-t target-pane] shell-command
+     run-shell [-b] [-t target-pane] shell-command
 		   (alias: run)
 	     Execute shell-command in the background without creating a win-
 	     dow.  Before being executed, shell-command is expanded using the
@@ -2017,11 +1961,7 @@ MISCELLANEOUS
 	     current pane if omitted).	If the command doesn’t return success,
 	     the exit status is also displayed.
 
-     server-info
-		   (alias: info)
-	     Show server information and terminal details.
-
-     wait-for -LSU channel
+     wait-for [-L | -S | -U] channel
 		   (alias: wait)
 	     When used without options, prevents the client from exiting until
 	     woken using wait-for -S with the same channel.  When -L is used,
@@ -2032,15 +1972,14 @@ MISCELLANEOUS
 TERMINFO EXTENSIONS
      tmux understands some extensions to terminfo(5):
 
-     Cc, Cr  Set the cursor colour.  The first takes a single string argument
+     Cs, Cr  Set the cursor colour.  The first takes a single string argument
 	     and is used to set the colour; the second takes no arguments and
 	     restores the default cursor colour.  If set, a sequence such as
 	     this may be used to change the cursor colour from inside tmux:
 
 		   $ printf ’\033]12;red\033\\’
 
-     Cs, Csr
-	     Change the cursor style.  If set, a sequence such as this may be
+     Ss, Se  Change the cursor style.  If set, a sequence such as this may be
 	     used to change the cursor to an underline:
 
 		   $ printf ’\033[4 q’
@@ -2109,8 +2048,8 @@ CONTROL MODE
 	     The window with ID window-id was renamed to name.
 
 FILES
-     ~/.tmux.conf	Default tmux configuration file.
-     /etc/tmux.conf	System-wide configuration file.
+     ~/.tmux.conf		Default tmux configuration file.
+     @SYSCONFDIR@/tmux.conf	System-wide configuration file.
 
 EXAMPLES
      To create a new tmux session running vi(1):
@@ -2155,7 +2094,7 @@ EXAMPLES
      Turning the status line off, or changing its colour:
 
 	   set-option -g status off
-	   set-option -g status-bg blue
+	   set-option -g status-style bg=blue
 
      Setting other options, such as the default command, or locking after 30
      minutes of inactivity:
