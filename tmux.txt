@@ -1685,8 +1685,7 @@ OPTIONS
 	     xterm-keys [on | off]
 		     If this option is set, tmux will generate xterm(1) -style
 		     function key sequences; these have a number included to
-		     indicate modifiers such as Shift, Alt or Ctrl.  The
-		     default is off.
+		     indicate modifiers such as Shift, Alt or Ctrl.
 
      show-options [-gqsvw] [-t target-session | target-window] [option]
 		   (alias: show)
@@ -1809,7 +1808,7 @@ FORMATS
 
      Simple comparisons may be expressed by prefixing two comma-separated
      alternatives by ‘==’ or ‘!=’ and a colon.	For example
-     ‘#{==,#{host},myhost}’ will be replaced by ‘1’ if running on ‘myhost’,
+     ‘#{==:#{host},myhost}’ will be replaced by ‘1’ if running on ‘myhost’,
      otherwise by ‘0.’
 
      A limit may be placed on the length of the resultant string by prefixing
@@ -1827,9 +1826,10 @@ FORMATS
      using ‘#()’.  For example, ‘#(uptime)’ will insert the system’s uptime.
      When constructing formats, tmux does not wait for ‘#()’ commands to fin-
      ish; instead, the previous result from running the same command is used,
-     or a placeholder if the command has not been run before.  Commands are
-     executed with the tmux global environment set (see the ENVIRONMENT sec-
-     tion).
+     or a placeholder if the command has not been run before.  If the command
+     hasn’t exited, the most recent line of output will be used, but the sta-
+     tus line will not be updated more than once a second.  Commands are exe-
+     cuted with the tmux global environment set (see the ENVIRONMENT section).
 
      The following variables are available, where appropriate:
 
@@ -1843,6 +1843,7 @@ FORMATS
      client_activity		     Integer time client last had activity
      client_created		     Integer time client created
      client_control_mode	     1 if client is in control mode
+     client_discarded		     Bytes discarded when client behind
      client_height		     Height of client
      client_key_table		     Current key table
      client_last_session	     Name of the client’s last session
@@ -1896,8 +1897,10 @@ FORMATS
      pane_input_off		     If input to pane is disabled
      pane_index		    #P	     Index of pane
      pane_left			     Left of pane
+     pane_mode			     Name of pane mode, if any.
      pane_pid			     PID of first process in pane
      pane_right			     Right of pane
+     pane_search_string		     Last search string in copy mode
      pane_start_command		     Command pane started with
      pane_synchronized		     If pane is synchronized
      pane_tabs			     Pane tab positions
@@ -1920,6 +1923,7 @@ FORMATS
      session_id			     Unique session ID
      session_many_attached	     1 if multiple clients attached
      session_name	    #S	     Name of session
+     session_stack		     Window indexes in most recent order
      session_width		     Width of session
      session_windows		     Number of windows in session
      socket_path		     Server socket path
@@ -1941,6 +1945,7 @@ FORMATS
      window_name	    #W	     Name of window
      window_panes		     Number of panes in window
      window_silence_flag	     1 if window has silence alert
+     window_stack_index		     Index in session most recent stack
      window_visible_layout	     Window layout description, respecting
 				     zoomed window panes
      window_width		     Width of window
@@ -2277,6 +2282,10 @@ CONTROL MODE
 
      The following notifications are defined:
 
+     %client-session-changed client session-id name
+	     The client is now attached to the session with ID session-id,
+	     which is named name.
+
      %exit [reason]
 	     The tmux client is exiting immediately, either because it is not
 	     attached to any session or an error occurred.  If present, reason
@@ -2291,12 +2300,19 @@ CONTROL MODE
 	     A window pane produced output.  value escapes non-printable char-
 	     acters and backslash as octal \xxx.
 
+     %pane-mode-changed pane-id
+	     The pane with ID pane-id has changed mode.
+
      %session-changed session-id name
 	     The client is now attached to the session with ID session-id,
 	     which is named name.
 
      %session-renamed name
 	     The current session was renamed to name.
+
+     %session-window-changed session-id window-id
+	     The session with ID session-id changed its active window to the
+	     window with ID window-id.
 
      %sessions-changed
 	     A session was created or destroyed.
@@ -2310,6 +2326,10 @@ CONTROL MODE
 
      %window-close window-id
 	     The window with ID window-id closed.
+
+     %window-pane-changed window-id pane-id
+	     The active pane in the window with ID window-id changed to the
+	     pane with ID pane-id.
 
      %window-renamed window-id name
 	     The window with ID window-id was renamed to name.
