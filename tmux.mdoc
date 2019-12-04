@@ -4,7 +4,7 @@ NNAAMMEE
      ttmmuuxx - terminal multiplexer
 
 SSYYNNOOPPSSIISS
-     ttmmuuxx [--2288llqquuvv] [--cc _s_h_e_l_l_-_c_o_m_m_a_n_d] [--ff _f_i_l_e] [--LL _s_o_c_k_e_t_-_n_a_m_e]
+     ttmmuuxx [--2288llqquuvvVV] [--cc _s_h_e_l_l_-_c_o_m_m_a_n_d] [--ff _f_i_l_e] [--LL _s_o_c_k_e_t_-_n_a_m_e]
           [--SS _s_o_c_k_e_t_-_p_a_t_h] [_c_o_m_m_a_n_d [_f_l_a_g_s]]
 
 DDEESSCCRRIIPPTTIIOONN
@@ -100,6 +100,8 @@ DDEESSCCRRIIPPTTIIOONN
                    files in the current directory, where _P_I_D is the PID of the
                    server or client process.
 
+     --VV            Report the ttmmuuxx version.
+
      _c_o_m_m_a_n_d [_f_l_a_g_s]
                    This specifies one of a set of commands used to control
                    ttmmuuxx, as described in the following sections.  If no com-
@@ -125,6 +127,7 @@ KKEEYY BBIINNDDIINNGGSS
            .           Prompt for an index to move the current window.
            0 to 9      Select windows 0 to 9.
            :           Enter the ttmmuuxx command prompt.
+           ;           Move to the previously active pane.
            =           Choose which buffer to paste interactively from a list.
            ?           List all key bindings.
            D           Choose a client to detach.
@@ -142,6 +145,7 @@ KKEEYY BBIINNDDIINNGGSS
            r           Force redraw of the attached client.
            s           Select a new session for the attached client interac-
                        tively.
+           L           Switch the attached client back to the last session.
            t           Show the time.
            w           Choose the current window interactively.
            x           Kill the current pane.
@@ -263,7 +267,7 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
      The ttmmuuxx server manages clients, sessions, windows and panes.  Clients
      are attached to sessions to interact with them, either when they are cre-
      ated with the nneeww--sseessssiioonn command, or later with the aattttaacchh--sseessssiioonn com-
-     mand.  Each session has one of more windows _l_i_n_k_e_d into it.  Windows may
+     mand.  Each session has one or more windows _l_i_n_k_e_d into it.  Windows may
      be linked to multiple sessions and are made up of one or more panes, each
      of which contains a pseudo terminal.  Commands for creating, linking and
      otherwise manipulating windows are covered in the _W_I_N_D_O_W_S _A_N_D _P_A_N_E_S sec-
@@ -370,10 +374,11 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
                    (alias: ssuussppeennddcc)
              Suspend a client by sending SIGTSTP (tty stop).
 
-     sswwiittcchh--cclliieenntt [--cc _t_a_r_g_e_t_-_c_l_i_e_n_t] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+     sswwiittcchh--cclliieenntt [--llnnpp] [--cc _t_a_r_g_e_t_-_c_l_i_e_n_t] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: sswwiittcchhcc)
              Switch the current session for client _t_a_r_g_e_t_-_c_l_i_e_n_t to
-             _t_a_r_g_e_t_-_s_e_s_s_i_o_n.
+             _t_a_r_g_e_t_-_s_e_s_s_i_o_n.  If --ll, --nn or --pp is used, the client is moved to
+             the last, next or previous session respectively.
 
 WWIINNDDOOWWSS AANNDD PPAANNEESS
      A ttmmuuxx window may be in one of several modes.  The default permits direct
@@ -509,6 +514,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            0: ksh [159x48]
                layout: bb62,159x48,0,0{79x48,0,0,79x48,80,0}
            $ tmux select-layout bb62,159x48,0,0{79x48,0,0,79x48,80,0}
+
      ttmmuuxx automatically adjusts the size of the layout for the current window
      size.  Note that a layout cannot be applied to a window with more panes
      than that from which the layout was originally defined.
@@ -579,6 +585,10 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
                    (alias: kkiillllww)
              Kill the current window or the window at _t_a_r_g_e_t_-_w_i_n_d_o_w, removing
              it from any sessions to which it is linked.
+
+     llaasstt--ppaannee [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w]
+                   (alias: llaassttpp)
+             Select the last (previously selected) pane.
 
      llaasstt--wwiinnddooww [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: llaasstt)
@@ -779,11 +789,12 @@ KKEEYY BBIINNDDIINNGGSS
              Send the prefix key to a window as if it was pressed.  If multi-
              ple prefix keys are configured, only the first is sent.
 
-     uunnbbiinndd--kkeeyy [--ccnn] [--tt _k_e_y_-_t_a_b_l_e] _k_e_y
+     uunnbbiinndd--kkeeyy [--aaccnn] [--tt _k_e_y_-_t_a_b_l_e] _k_e_y
                    (alias: uunnbbiinndd)
              Unbind the command bound to _k_e_y.  Without --tt the primary key
              bindings are modified; in this case, if --nn is specified, the com-
-             mand bound to _k_e_y without a prefix (if any) is removed.
+             mand bound to _k_e_y without a prefix (if any) is removed.  If --aa is
+             present, all key bindings are removed.
 
              If --tt is present, _k_e_y in _k_e_y_-_t_a_b_l_e is unbound: the binding for
              command mode with --cc or for normal mode without.
@@ -827,17 +838,16 @@ OOPPTTIIOONNSS
 
              Available server options are:
 
-             ddeettaacchh--oonn--ddeessttrrooyy
-                     If on (the default), the client is detached when the ses-
-                     sion it is attached to is destroyed.  If off, the client
-                     is switched to the most recently active of the remaining
-                     sessions.
-
              eessccaappee--ttiimmee
                      Set the time in milliseconds for which ttmmuuxx waits after
                      an escape is input to determine if it is part of a func-
                      tion or meta key sequences.  The default is 500 millisec-
                      onds.
+
+             eexxiitt--uunnaattttaacchheedd
+                     If enabled, the server will exit when there are no
+                     attached clients, rather than when there are no attached
+                     sessions.
 
              qquuiieett   Enable or disable the display of various informational
                      messages (see also the --qq command line flag).
@@ -869,6 +879,13 @@ OOPPTTIIOONNSS
                      which instructs ttmmuuxx to create a login shell using the
                      value of the ddeeffaauulltt--sshheellll option.
 
+             ddeeffaauulltt--ppaatthh _p_a_t_h
+                     Set the default working directory for processes created
+                     from keys, or interactively from the prompt.  The default
+                     is empty, which means to use the working directory of the
+                     shell from which the server was started if it is avail-
+                     able or the user’s home if not.
+
              ddeeffaauulltt--sshheellll _p_a_t_h
                      Specify the default shell.  This is used as the login
                      shell for new windows when the ddeeffaauulltt--ccoommmmaanndd option is
@@ -879,18 +896,21 @@ OOPPTTIIOONNSS
                      This option should be configured when ttmmuuxx is used as a
                      login shell.
 
-             ddeeffaauulltt--ppaatthh _p_a_t_h
-                     Set the default working directory for processes created
-                     from keys, or interactively from the prompt.  The default
-                     is empty, which means to use the working directory of the
-                     shell from which the server was started if it is avail-
-                     able or the user’s home if not.
-
              ddeeffaauulltt--tteerrmmiinnaall _t_e_r_m_i_n_a_l
                      Set the default terminal for new windows created in this
                      session - the default value of the TERM environment vari-
                      able.  For ttmmuuxx to work correctly, this _m_u_s_t be set to
                      ‘screen’ or a derivative of it.
+
+             ddeessttrrooyy--uunnaattttaacchheedd
+                     If enabled and the session is no longer attached to any
+                     clients, it is destroyed.
+
+             ddeettaacchh--oonn--ddeessttrrooyy
+                     If on (the default), the client is detached when the ses-
+                     sion it is attached to is destroyed.  If off, the client
+                     is switched to the most recently active of the remaining
+                     sessions.
 
              ddiissppllaayy--ppaanneess--aaccttiivvee--ccoolloouurr _c_o_l_o_u_r
                      Set the colour used by the ddiissppllaayy--ppaanneess command to show
@@ -957,16 +977,16 @@ OOPPTTIIOONNSS
                      current pane.  The mouse click is also passed through to
                      the application as normal.
 
-             ppaannee--bboorrddeerr--ffgg _c_o_l_o_u_r
-
-             ppaannee--bboorrddeerr--bbgg _c_o_l_o_u_r
-                     Set the pane border colour for panes aside from the
-                     active pane.
+             ppaannee--aaccttiivvee--bboorrddeerr--bbgg _c_o_l_o_u_r
 
              ppaannee--aaccttiivvee--bboorrddeerr--ffgg _c_o_l_o_u_r
-
-             ppaannee--aaccttiivvee--bboorrddeerr--bbgg _c_o_l_o_u_r
                      Set the pane border colour for the currently active pane.
+
+             ppaannee--bboorrddeerr--bbgg _c_o_l_o_u_r
+
+             ppaannee--bboorrddeerr--ffgg _c_o_l_o_u_r
+                     Set the pane border colour for panes aside from the
+                     active pane.
 
              pprreeffiixx _k_e_y_s
                      Set the keys accepted as a prefix key.  _k_e_y_s is a comma-
@@ -1024,7 +1044,9 @@ OOPPTTIIOONNSS
 
              ssttaattuuss--kkeeyyss [vvii | eemmaaccss]
                      Use vi or emacs-style key bindings in the status line,
-                     for example at the command prompt.  Defaults to emacs.
+                     for example at the command prompt.  The default is emacs,
+                     unless the VISUAL or EDITOR environment variables are set
+                     and contain the string ‘vi’.
 
              ssttaattuuss--lleefftt _s_t_r_i_n_g
                      Display _s_t_r_i_n_g to the left of the status bar.  _s_t_r_i_n_g
@@ -1083,12 +1105,12 @@ OOPPTTIIOONNSS
              ssttaattuuss--lleefftt--aattttrr _a_t_t_r_i_b_u_t_e_s
                      Set the attribute of the left part of the status line.
 
-             ssttaattuuss--lleefftt--ffgg _c_o_l_o_u_r
-                     Set the foreground colour of the left part of the status
-                     line.
-
              ssttaattuuss--lleefftt--bbgg _c_o_l_o_u_r
                      Set the background colour of the left part of the status
+                     line.
+
+             ssttaattuuss--lleefftt--ffgg _c_o_l_o_u_r
+                     Set the foreground colour of the left part of the status
                      line.
 
              ssttaattuuss--lleefftt--lleennggtthh _l_e_n_g_t_h
@@ -1106,12 +1128,12 @@ OOPPTTIIOONNSS
              ssttaattuuss--rriigghhtt--aattttrr _a_t_t_r_i_b_u_t_e_s
                      Set the attribute of the right part of the status line.
 
-             ssttaattuuss--rriigghhtt--ffgg _c_o_l_o_u_r
-                     Set the foreground colour of the right part of the status
-                     line.
-
              ssttaattuuss--rriigghhtt--bbgg _c_o_l_o_u_r
                      Set the background colour of the right part of the status
+                     line.
+
+             ssttaattuuss--rriigghhtt--ffgg _c_o_l_o_u_r
+                     Set the foreground colour of the right part of the status
                      line.
 
              ssttaattuuss--rriigghhtt--lleennggtthh _l_e_n_g_t_h
@@ -1152,8 +1174,9 @@ OOPPTTIIOONNSS
                      is attached.  Any variables that do not exist in the
                      source environment are set to be removed from the session
                      environment (as if --rr was given to the sseett--eennvviirroonnmmeenntt
-                     command).  The default is "DISPLAY WINDOWID SSH_ASKPASS
-                     SSH_AUTH_SOCK SSH_AGENT_PID SSH_CONNECTION".
+                     command).  The default is "DISPLAY SSH_ASKPASS
+                     SSH_AUTH_SOCK SSH_AGENT_PID SSH_CONNECTION WINDOWID XAU-
+                     THORITY".
 
              vviissuuaall--aaccttiivviittyy [oonn | ooffff]
                      If on, display a status line message when activity occurs
@@ -1170,6 +1193,10 @@ OOPPTTIIOONNSS
                      Like vviissuuaall--aaccttiivviittyy, display a message when content is
                      present in a window for which the mmoonniittoorr--ccoonntteenntt window
                      option is enabled.
+
+             vviissuuaall--ssiilleennccee [oonn | ooffff]
+                     If mmoonniittoorr--ssiilleennccee is enabled, prints a message after the
+                     interval has expired on a given window.
 
      sseett--wwiinnddooww--ooppttiioonn [--aagguu] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] _o_p_t_i_o_n _v_a_l_u_e
                    (alias: sseettww)
@@ -1188,13 +1215,20 @@ OOPPTTIIOONNSS
                      which support SIGWINCH and poor for interactive programs
                      such as shells.
 
+             aalltteerrnnaattee--ssccrreeeenn [oonn | ooffff]
+                     This option configures whether programs running inside
+                     ttmmuuxx may use the terminal alternate screen feature, which
+                     allows the _s_m_c_u_p and _r_m_c_u_p terminfo(5) capabilities to be
+                     issued to preserve the existing window content on start
+                     and restore it on exit.
+
              aauuttoommaattiicc--rreennaammee [oonn | ooffff]
                      Control automatic window renaming.  When this setting is
                      enabled, ttmmuuxx will attempt - on supported platforms - to
                      rename the window to reflect the command currently run-
                      ning in it.  This flag is automatically disabled for an
                      individual window when a name is specified at creation
-                     with nneeww--wwiinnddooww oorr nneeww--sseessssiioonn, or later with
+                     with nneeww--wwiinnddooww or nneeww--sseessssiioonn, or later with
                      rreennaammee--wwiinnddooww.  It may be switched off globally with:
 
                            set-window-option -g automatic-rename off
@@ -1211,8 +1245,8 @@ OOPPTTIIOONNSS
                      or _h_e_i_g_h_t.  A value of zero restores the default unlim-
                      ited setting.
 
-             mmaaiinn--ppaannee--wwiiddtthh _w_i_d_t_h
              mmaaiinn--ppaannee--hheeiigghhtt _h_e_i_g_h_t
+             mmaaiinn--ppaannee--wwiiddtthh _w_i_d_t_h
                      Set the width or height of the main (left or top) pane in
                      the mmaaiinn--hhoorriizzoonnttaall or mmaaiinn--vveerrttiiccaall layouts.
 
@@ -1227,7 +1261,8 @@ OOPPTTIIOONNSS
 
              mmooddee--kkeeyyss [vvii | eemmaaccss]
                      Use vi or emacs-style key bindings in copy and choice
-                     modes.  Key bindings default to emacs.
+                     modes.  As with the ssttaattuuss--kkeeyyss option, the default is
+                     emacs, unless VISUAL or EDITOR contains ‘vi’.
 
              mmooddee--mmoouussee [oonn | ooffff]
                      Mouse state in modes.  If on, the mouse may be used to
@@ -1243,6 +1278,24 @@ OOPPTTIIOONNSS
                      _m_a_t_c_h_-_s_t_r_i_n_g appears in the window, it is highlighted in
                      the status line.
 
+             mmoonniittoorr--ssiilleennccee [iinntteerrvvaall]
+                     Monitor for silence (no activity) in the window within
+                     iinntteerrvvaall seconds.  Windows that have been silent for the
+                     interval are highlighted in the status line.  An interval
+                     of zero disables the monitoring.
+
+             ootthheerr--ppaannee--hheeiigghhtt _h_e_i_g_h_t
+                     Set the height of the other panes (not the main pane) in
+                     the mmaaiinn--hhoorriizzoonnttaall layout.  If this option is set to 0
+                     (the default), it will have no effect.  If both the
+                     mmaaiinn--ppaannee--hheeiigghhtt and ootthheerr--ppaannee--hheeiigghhtt options are set,
+                     the main pane will grow taller to make the other panes
+                     the specified height, but will never shrink to do so.
+
+             ootthheerr--ppaannee--wwiiddtthh _w_i_d_t_h
+                     Like ootthheerr--ppaannee--hheeiigghhtt, but set the width of other panes
+                     in the mmaaiinn--vveerrttiiccaall layout.
+
              rreemmaaiinn--oonn--eexxiitt [oonn | ooffff]
                      A window with this flag set is not destroyed when the
                      program running in it exits.  The window may be reacti-
@@ -1252,13 +1305,6 @@ OOPPTTIIOONNSS
                      Duplicate input to any pane to all other panes in the
                      same window (only for panes that are not in any special
                      mode).
-
-             aalltteerrnnaattee--ssccrreeeenn [oonn | ooffff]
-                     This option configures whether programs running inside
-                     ttmmuuxx may use the terminal alternate screen feature, which
-                     allows the _s_m_c_u_p and _r_m_c_u_p terminfo(5) capabilities to be
-                     issued to preserve the existing window content on start
-                     and restore it on exit.
 
              uuttff88 [oonn | ooffff]
                      Instructs ttmmuuxx to expect UTF-8 sequences to appear in
@@ -1334,9 +1380,9 @@ OOPPTTIIOONNSS
 EENNVVIIRROONNMMEENNTT
      When the server is started, ttmmuuxx copies the environment into the _g_l_o_b_a_l
      _e_n_v_i_r_o_n_m_e_n_t; in addition, each session has a _s_e_s_s_i_o_n _e_n_v_i_r_o_n_m_e_n_t.  When a
-     window is created, the session and global environments are merged with
-     the session environment overriding any variable present in both.  This is
-     the initial environment passed to the new process.
+     window is created, the session and global environments are merged.  If a
+     variable exists in both, the value from the session environment is used.
+     The result is the initial environment passed to the new process.
 
      The uuppddaattee--eennvviirroonnmmeenntt session option may be used to update the session
      environment from the client when a new session is created or an old reat-
@@ -1383,6 +1429,8 @@ SSTTAATTUUSS LLIINNEE
            #         Window is monitored and activity has been detected.
            !         A bell has occurred in the window.
            +         Window is monitored for content and it has appeared.
+           ~         The window has been silent for the monitor-silence
+                                interval.
 
      The # symbol relates to the mmoonniittoorr--aaccttiivviittyy and + to the mmoonniittoorr--ccoonntteenntt
      window options.  The window name is printed in inverted colours if an
