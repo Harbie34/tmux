@@ -440,7 +440,7 @@ CLIENTS AND SESSIONS
 	     given.  window-name and shell-command are the name of and shell
 	     command to execute in the initial window.	With -d, the initial
 	     size is 80 x 24; -x and -y can be used to specify a different
-	     size.
+	     size.  ‘-’ uses the size of the current client if any.
 
 	     If run from a terminal, any termios(4) special characters are
 	     saved and used for new windows in the new session.
@@ -497,7 +497,7 @@ CLIENTS AND SESSIONS
 
      source-file [-q] path
 		   (alias: source)
-	     Execute commands from path (which may be a glob(3) pattern).  If
+	     Execute commands from path (which may be a glob(7) pattern).  If
 	     -q is given, no error will be returned if path does not exist.
 
 	     Within a configuration file, commands may be made conditional by
@@ -786,6 +786,8 @@ WINDOWS AND PANES
 		   Enter  Choose selected item
 		   Up	  Select previous item
 		   Down	  Select next item
+		   x	  Kill selected item
+		   X	  Kill tagged items
 		   <	  Scroll list of previews left
 		   >	  Scroll list of previews right
 		   C-s	  Search by name
@@ -1415,8 +1417,7 @@ OPTIONS
 		     magenta, cyan, white, aixterm bright variants (if sup-
 		     ported: brightred, brightgreen, and so on), colour0 to
 		     colour255 from the 256-colour set, default, or a hexadec-
-		     imal RGB string such as ‘#ffffff’, which chooses the
-		     closest match from the default 256-colour set.
+		     imal RGB string such as ‘#ffffff’.
 
 		     The attributes is either none or a comma-delimited list
 		     of one or more of: bright (or bold), dim, underscore,
@@ -1828,6 +1829,12 @@ HOOKS
 
      pane-exited	     Run when the program running in a pane exits.
 
+     pane-focus-in	     Run when the focus enters a pane, if the
+			     focus-events option is on.
+
+     pane-focus-out	     Run when the focus exits a pane, if the
+			     focus-events option is on.
+
      pane-set-clipboard	     Run when the terminal clipboard is set using the
 			     xterm(1) escape sequence.
 
@@ -1845,11 +1852,14 @@ HOOKS
 
      Hooks are managed with these commands:
 
-     set-hook [-gu] [-t target-session] hook-name command
-	     Sets (or with -u unsets) hook hook-name to command.  If -g is
-	     given, hook-name is added to the global list of hooks, otherwise
-	     it is added to the session hooks (for target-session with -t).
-	     Like options, session hooks inherit from the global ones.
+     set-hook [-gRu] [-t target-session] hook-name command
+	     Without -R, sets (or with -u unsets) hook hook-name to command.
+	     If -g is given, hook-name is added to the global list of hooks,
+	     otherwise it is added to the session hooks (for target-session
+	     with -t).	Like options, session hooks inherit from the global
+	     ones.
+
+	     With -R, run hook-name immediately.
 
      show-hooks [-g] [-t target-session]
 	     Shows the global list of hooks with -g, otherwise the session
@@ -1890,7 +1900,8 @@ FORMATS
      variables are enclosed in ‘#{’ and ‘}’, for example ‘#{session_name}’.
      The possible variables are listed in the table below, or the name of a
      tmux option may be used for an option’s value.  Some variables have a
-     shorter alias such as ‘#S’, and ‘##’ is replaced by a single ‘#’.
+     shorter alias such as ‘#S’; ‘##’ is replaced by a single ‘#’, ‘#,’ by a
+     ‘,’ and ‘#}’ by a ‘}’.
 
      Conditionals are available by prefixing with ‘?’ and separating two
      alternatives with a comma; if the specified variable exists and is not
@@ -1898,7 +1909,12 @@ FORMATS
      example ‘#{?session_attached,attached,not attached}’ will include the
      string ‘attached’ if the session is attached and the string ‘not
      attached’ if it is unattached, or ‘#{?automatic-rename,yes,no}’ will
-     include ‘yes’ if automatic-rename is enabled, or ‘no’ if not.
+     include ‘yes’ if automatic-rename is enabled, or ‘no’ if not.  Condition-
+     als can be nested arbitrarily.  Inside a conditional, ‘,’ and ‘}’ must be
+     escaped as ‘#,’ and ‘#}’, unless they are part of a ‘#{...}’ replacement.
+     For example:
+
+	   #{?pane_in_mode,#[fg=white#,bg=red],#[fg=red#,bg=white]}#W .
 
      Comparisons may be expressed by prefixing two comma-separated alterna-
      tives by ‘==’ or ‘!=’ and a colon.	 For example ‘#{==:#{host},myhost}’
@@ -1907,7 +1923,7 @@ FORMATS
      tern and the second the string to compare, for example
      ‘#{m:*foo*,#{host}}’.  ‘||’ and ‘&&’ evaluate to true if either or both
      of two comma-separated alternatives are true, for example
-     ‘#{||,#{pane_in_mode},#{alternate_on}}’.  A ‘C’ performs a search for an
+     ‘#{||:#{pane_in_mode},#{alternate_on}}’.  A ‘C’ performs a search for an
      fnmatch(3) pattern in the pane content and evaluates to zero if not
      found, or a line number if found.
 
@@ -2017,6 +2033,7 @@ FORMATS
      pane_tty			     Pseudo terminal of pane
      pane_width			     Width of pane
      pid			     Server PID
+     rectangle_toggle		     1 if rectangle selection is activated
      scroll_region_lower	     Bottom of scroll region in pane
      scroll_region_upper	     Top of scroll region in pane
      scroll_position		     Scroll position in copy mode
@@ -2082,7 +2099,7 @@ NAMES AND TITLES
 
      1.	     A command argument (such as -n for new-window or new-session).
 
-     2.	     An escape sequence:
+     2.	     An escape sequence (if the allow-rename option is turned on):
 
 		   $ printf ’\033kWINDOW_NAME\033\\’
 
