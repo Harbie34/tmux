@@ -4,7 +4,7 @@ NAME
      tmux - terminal multiplexer
 
 SYNOPSIS
-     tmux [-28lquv] [-c shell-command] [-f file] [-L socket-name]
+     tmux [-28lquvV] [-c shell-command] [-f file] [-L socket-name]
 	  [-S socket-path] [command [flags]]
 
 DESCRIPTION
@@ -100,6 +100,8 @@ DESCRIPTION
 		   files in the current directory, where PID is the PID of the
 		   server or client process.
 
+     -V		   Report the tmux version.
+
      command [flags]
 		   This specifies one of a set of commands used to control
 		   tmux, as described in the following sections.  If no com-
@@ -125,6 +127,7 @@ KEY BINDINGS
 	   .	       Prompt for an index to move the current window.
 	   0 to 9      Select windows 0 to 9.
 	   :	       Enter the tmux command prompt.
+	   ;	       Move to the previously active pane.
 	   =	       Choose which buffer to paste interactively from a list.
 	   ?	       List all key bindings.
 	   D	       Choose a client to detach.
@@ -142,6 +145,7 @@ KEY BINDINGS
 	   r	       Force redraw of the attached client.
 	   s	       Select a new session for the attached client interac-
 		       tively.
+	   L	       Switch the attached client back to the last session.
 	   t	       Show the time.
 	   w	       Choose the current window interactively.
 	   x	       Kill the current pane.
@@ -263,7 +267,7 @@ CLIENTS AND SESSIONS
      The tmux server manages clients, sessions, windows and panes.  Clients
      are attached to sessions to interact with them, either when they are cre-
      ated with the new-session command, or later with the attach-session com-
-     mand.  Each session has one of more windows linked into it.  Windows may
+     mand.  Each session has one or more windows linked into it.  Windows may
      be linked to multiple sessions and are made up of one or more panes, each
      of which contains a pseudo terminal.  Commands for creating, linking and
      otherwise manipulating windows are covered in the WINDOWS AND PANES sec-
@@ -370,10 +374,11 @@ CLIENTS AND SESSIONS
 		   (alias: suspendc)
 	     Suspend a client by sending SIGTSTP (tty stop).
 
-     switch-client [-c target-client] [-t target-session]
+     switch-client [-lnp] [-c target-client] [-t target-session]
 		   (alias: switchc)
 	     Switch the current session for client target-client to
-	     target-session.
+	     target-session.  If -l, -n or -p is used, the client is moved to
+	     the last, next or previous session respectively.
 
 WINDOWS AND PANES
      A tmux window may be in one of several modes.  The default permits direct
@@ -509,6 +514,7 @@ WINDOWS AND PANES
 	   0: ksh [159x48]
 	       layout: bb62,159x48,0,0{79x48,0,0,79x48,80,0}
 	   $ tmux select-layout bb62,159x48,0,0{79x48,0,0,79x48,80,0}
+
      tmux automatically adjusts the size of the layout for the current window
      size.  Note that a layout cannot be applied to a window with more panes
      than that from which the layout was originally defined.
@@ -579,6 +585,10 @@ WINDOWS AND PANES
 		   (alias: killw)
 	     Kill the current window or the window at target-window, removing
 	     it from any sessions to which it is linked.
+
+     last-pane [-t target-window]
+		   (alias: lastp)
+	     Select the last (previously selected) pane.
 
      last-window [-t target-session]
 		   (alias: last)
@@ -779,11 +789,12 @@ KEY BINDINGS
 	     Send the prefix key to a window as if it was pressed.  If multi-
 	     ple prefix keys are configured, only the first is sent.
 
-     unbind-key [-cn] [-t key-table] key
+     unbind-key [-acn] [-t key-table] key
 		   (alias: unbind)
 	     Unbind the command bound to key.  Without -t the primary key
 	     bindings are modified; in this case, if -n is specified, the com-
-	     mand bound to key without a prefix (if any) is removed.
+	     mand bound to key without a prefix (if any) is removed.  If -a is
+	     present, all key bindings are removed.
 
 	     If -t is present, key in key-table is unbound: the binding for
 	     command mode with -c or for normal mode without.
@@ -827,17 +838,16 @@ OPTIONS
 
 	     Available server options are:
 
-	     detach-on-destroy
-		     If on (the default), the client is detached when the ses-
-		     sion it is attached to is destroyed.  If off, the client
-		     is switched to the most recently active of the remaining
-		     sessions.
-
 	     escape-time
 		     Set the time in milliseconds for which tmux waits after
 		     an escape is input to determine if it is part of a func-
 		     tion or meta key sequences.  The default is 500 millisec-
 		     onds.
+
+	     exit-unattached
+		     If enabled, the server will exit when there are no
+		     attached clients, rather than when there are no attached
+		     sessions.
 
 	     quiet   Enable or disable the display of various informational
 		     messages (see also the -q command line flag).
@@ -869,6 +879,13 @@ OPTIONS
 		     which instructs tmux to create a login shell using the
 		     value of the default-shell option.
 
+	     default-path path
+		     Set the default working directory for processes created
+		     from keys, or interactively from the prompt.  The default
+		     is empty, which means to use the working directory of the
+		     shell from which the server was started if it is avail-
+		     able or the user’s home if not.
+
 	     default-shell path
 		     Specify the default shell.	 This is used as the login
 		     shell for new windows when the default-command option is
@@ -879,18 +896,21 @@ OPTIONS
 		     This option should be configured when tmux is used as a
 		     login shell.
 
-	     default-path path
-		     Set the default working directory for processes created
-		     from keys, or interactively from the prompt.  The default
-		     is empty, which means to use the working directory of the
-		     shell from which the server was started if it is avail-
-		     able or the user’s home if not.
-
 	     default-terminal terminal
 		     Set the default terminal for new windows created in this
 		     session - the default value of the TERM environment vari-
 		     able.  For tmux to work correctly, this must be set to
 		     ‘screen’ or a derivative of it.
+
+	     destroy-unattached
+		     If enabled and the session is no longer attached to any
+		     clients, it is destroyed.
+
+	     detach-on-destroy
+		     If on (the default), the client is detached when the ses-
+		     sion it is attached to is destroyed.  If off, the client
+		     is switched to the most recently active of the remaining
+		     sessions.
 
 	     display-panes-active-colour colour
 		     Set the colour used by the display-panes command to show
@@ -957,16 +977,16 @@ OPTIONS
 		     current pane.  The mouse click is also passed through to
 		     the application as normal.
 
-	     pane-border-fg colour
-
-	     pane-border-bg colour
-		     Set the pane border colour for panes aside from the
-		     active pane.
+	     pane-active-border-bg colour
 
 	     pane-active-border-fg colour
-
-	     pane-active-border-bg colour
 		     Set the pane border colour for the currently active pane.
+
+	     pane-border-bg colour
+
+	     pane-border-fg colour
+		     Set the pane border colour for panes aside from the
+		     active pane.
 
 	     prefix keys
 		     Set the keys accepted as a prefix key.  keys is a comma-
@@ -1024,7 +1044,9 @@ OPTIONS
 
 	     status-keys [vi | emacs]
 		     Use vi or emacs-style key bindings in the status line,
-		     for example at the command prompt.	 Defaults to emacs.
+		     for example at the command prompt.	 The default is emacs,
+		     unless the VISUAL or EDITOR environment variables are set
+		     and contain the string ‘vi’.
 
 	     status-left string
 		     Display string to the left of the status bar.  string
@@ -1083,12 +1105,12 @@ OPTIONS
 	     status-left-attr attributes
 		     Set the attribute of the left part of the status line.
 
-	     status-left-fg colour
-		     Set the foreground colour of the left part of the status
-		     line.
-
 	     status-left-bg colour
 		     Set the background colour of the left part of the status
+		     line.
+
+	     status-left-fg colour
+		     Set the foreground colour of the left part of the status
 		     line.
 
 	     status-left-length length
@@ -1106,12 +1128,12 @@ OPTIONS
 	     status-right-attr attributes
 		     Set the attribute of the right part of the status line.
 
-	     status-right-fg colour
-		     Set the foreground colour of the right part of the status
-		     line.
-
 	     status-right-bg colour
 		     Set the background colour of the right part of the status
+		     line.
+
+	     status-right-fg colour
+		     Set the foreground colour of the right part of the status
 		     line.
 
 	     status-right-length length
@@ -1152,8 +1174,9 @@ OPTIONS
 		     is attached.  Any variables that do not exist in the
 		     source environment are set to be removed from the session
 		     environment (as if -r was given to the set-environment
-		     command).	The default is "DISPLAY WINDOWID SSH_ASKPASS
-		     SSH_AUTH_SOCK SSH_AGENT_PID SSH_CONNECTION".
+		     command).	The default is "DISPLAY SSH_ASKPASS
+		     SSH_AUTH_SOCK SSH_AGENT_PID SSH_CONNECTION WINDOWID XAU-
+		     THORITY".
 
 	     visual-activity [on | off]
 		     If on, display a status line message when activity occurs
@@ -1171,6 +1194,10 @@ OPTIONS
 		     present in a window for which the monitor-content window
 		     option is enabled.
 
+	     visual-silence [on | off]
+		     If monitor-silence is enabled, prints a message after the
+		     interval has expired on a given window.
+
      set-window-option [-agu] [-t target-window] option value
 		   (alias: setw)
 	     Set a window option.  The -a, -g and -u flags work similarly to
@@ -1187,6 +1214,13 @@ OPTIONS
 		     sessions; this option is good for full-screen programs
 		     which support SIGWINCH and poor for interactive programs
 		     such as shells.
+
+	     alternate-screen [on | off]
+		     This option configures whether programs running inside
+		     tmux may use the terminal alternate screen feature, which
+		     allows the smcup and rmcup terminfo(5) capabilities to be
+		     issued to preserve the existing window content on start
+		     and restore it on exit.
 
 	     automatic-rename [on | off]
 		     Control automatic window renaming.	 When this setting is
@@ -1211,8 +1245,8 @@ OPTIONS
 		     or height.	 A value of zero restores the default unlim-
 		     ited setting.
 
-	     main-pane-width width
 	     main-pane-height height
+	     main-pane-width width
 		     Set the width or height of the main (left or top) pane in
 		     the main-horizontal or main-vertical layouts.
 
@@ -1227,7 +1261,8 @@ OPTIONS
 
 	     mode-keys [vi | emacs]
 		     Use vi or emacs-style key bindings in copy and choice
-		     modes.  Key bindings default to emacs.
+		     modes.  As with the status-keys option, the default is
+		     emacs, unless VISUAL or EDITOR contains ‘vi’.
 
 	     mode-mouse [on | off]
 		     Mouse state in modes.  If on, the mouse may be used to
@@ -1243,6 +1278,24 @@ OPTIONS
 		     match-string appears in the window, it is highlighted in
 		     the status line.
 
+	     monitor-silence [interval]
+		     Monitor for silence (no activity) in the window within
+		     interval seconds.	Windows that have been silent for the
+		     interval are highlighted in the status line.  An interval
+		     of zero disables the monitoring.
+
+	     other-pane-height height
+		     Set the height of the other panes (not the main pane) in
+		     the main-horizontal layout.  If this option is set to 0
+		     (the default), it will have no effect.  If both the
+		     main-pane-height and other-pane-height options are set,
+		     the main pane will grow taller to make the other panes
+		     the specified height, but will never shrink to do so.
+
+	     other-pane-width width
+		     Like other-pane-height, but set the width of other panes
+		     in the main-vertical layout.
+
 	     remain-on-exit [on | off]
 		     A window with this flag set is not destroyed when the
 		     program running in it exits.  The window may be reacti-
@@ -1252,13 +1305,6 @@ OPTIONS
 		     Duplicate input to any pane to all other panes in the
 		     same window (only for panes that are not in any special
 		     mode).
-
-	     alternate-screen [on | off]
-		     This option configures whether programs running inside
-		     tmux may use the terminal alternate screen feature, which
-		     allows the smcup and rmcup terminfo(5) capabilities to be
-		     issued to preserve the existing window content on start
-		     and restore it on exit.
 
 	     utf8 [on | off]
 		     Instructs tmux to expect UTF-8 sequences to appear in
@@ -1334,9 +1380,9 @@ OPTIONS
 ENVIRONMENT
      When the server is started, tmux copies the environment into the global
      environment; in addition, each session has a session environment.	When a
-     window is created, the session and global environments are merged with
-     the session environment overriding any variable present in both.  This is
-     the initial environment passed to the new process.
+     window is created, the session and global environments are merged.	 If a
+     variable exists in both, the value from the session environment is used.
+     The result is the initial environment passed to the new process.
 
      The update-environment session option may be used to update the session
      environment from the client when a new session is created or an old reat-
@@ -1383,6 +1429,8 @@ STATUS LINE
 	   #	     Window is monitored and activity has been detected.
 	   !	     A bell has occurred in the window.
 	   +	     Window is monitored for content and it has appeared.
+	   ~	     The window has been silent for the monitor-silence
+				interval.
 
      The # symbol relates to the monitor-activity and + to the monitor-content
      window options.  The window name is printed in inverted colours if an
