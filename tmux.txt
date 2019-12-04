@@ -80,9 +80,6 @@ DESCRIPTION
 		   and is for compatibility with other shells when using tmux
 		   as a login shell.
 
-     -q		   Set the quiet server option to prevent the server sending
-		   various informational messages.
-
      -S socket-path
 		   Specify a full alternative path to the server socket.  If
 		   -S is specified, the default socket directory is not used
@@ -128,6 +125,8 @@ KEY BINDINGS
 	   %	       Split the current pane into two, left and right.
 	   &	       Kill the current window.
 	   ’	       Prompt for a window index to select.
+	   (	       Switch the attached client to the previous session.
+	   )	       Switch the attached client to the next session.
 	   ,	       Rename the current window.
 	   -	       Delete the most recently copied buffer of text.
 	   .	       Prompt for an index to move the current window.
@@ -137,6 +136,7 @@ KEY BINDINGS
 	   =	       Choose which buffer to paste interactively from a list.
 	   ?	       List all key bindings.
 	   D	       Choose a client to detach.
+	   L	       Switch the attached client back to the last session.
 	   [	       Enter copy mode to copy text or view the history.
 	   ]	       Paste the most recently copied buffer of text.
 	   c	       Create a new window.
@@ -151,10 +151,10 @@ KEY BINDINGS
 	   r	       Force redraw of the attached client.
 	   s	       Select a new session for the attached client interac-
 		       tively.
-	   L	       Switch the attached client back to the last session.
 	   t	       Show the time.
 	   w	       Choose the current window interactively.
 	   x	       Kill the current pane.
+	   z	       Toggle zoom state of the current pane.
 	   {	       Swap the current pane with the previous pane.
 	   }	       Swap the current pane with the next pane.
 	   ~	       Show previous messages from tmux, if any.
@@ -166,6 +166,7 @@ KEY BINDINGS
 	   M-1 to M-5  Arrange panes in one of the five preset layouts: even-
 		       horizontal, even-vertical, main-horizontal, main-verti-
 		       cal, or tiled.
+	   Space       Arrange the current window in the next preset layout.
 	   M-n	       Move to the next window with a bell or activity marker.
 	   M-o	       Rotate the panes in the current window backwards.
 	   M-p	       Move to the previous window with a bell or activity
@@ -219,8 +220,8 @@ COMMANDS
      sion:mywindow.1.  If the pane index is omitted, the currently active pane
      in the specified window is used.  If neither a colon nor period appears,
      tmux first attempts to use the argument as a pane index; if that fails,
-     it is looked up as for target-window.  A ‘+’ or ‘-’ indicate the next or
-     previous pane index, respectively.	 One of the strings top, bottom, left,
+     it is looked up as for target-window.  A ‘+’, ‘-’ or ‘!’ indicate the
+     next, previous or last pane.  One of the strings top, bottom, left,
      right, top-left, top-right, bottom-left or bottom-right may be used
      instead of a pane index.
 
@@ -238,10 +239,23 @@ COMMANDS
      pane in the TMUX_PANE environment variable.  It may be used alone to tar-
      get a pane or the window containing it.
 
-     shell-command arguments are sh(1) commands.  These must be passed as a
-     single item, which typically means quoting them, for example:
+     shell-command arguments are sh(1) commands.  This may be a single argu-
+     ment passed to the shell, for example:
 
 	   new-window ’vi /etc/passwd’
+
+     Will run:
+
+	   /bin/sh -c ’vi /etc/passwd’
+
+     Additionally, the new-window, new-session, split-window, respawn-window
+     and respawn-pane commands allow shell-command to be given as multiple
+     arguments and executed directly (without ‘sh -c’).	 This can avoid issues
+     with shell quoting.  For example:
+
+	   $ tmux new-window vi /etc/passwd
+
+     Will run vi(1) directly without invoking the shell.
 
      command [arguments] refers to a tmux command, passed with the command and
      arguments separately, for example:
@@ -403,10 +417,10 @@ CLIENTS AND SESSIONS
 		   (alias: showmsgs)
 	     Show client messages or server information.  Any messages dis-
 	     played on the status line are saved in a per-client message log,
-	     up to a maximum of the limit set by the message-limit session
-	     option for the session attached to that client.  With -t, display
-	     the log for target-client.	 -I, -J and -T show debugging informa-
-	     tion about the running server, jobs and terminals.
+	     up to a maximum of the limit set by the message-limit server
+	     option.  With -t, display the log for target-client.  -I, -J and
+	     -T show debugging information about the running server, jobs and
+	     terminals.
 
      source-file path
 		   (alias: source)
@@ -442,10 +456,12 @@ WINDOWS AND PANES
      for the mode:
 
 	   Function			vi		emacs
+	   Append selection		A
 	   Back to indentation		^		M-m
 	   Bottom of history		G		M-<
 	   Clear selection		Escape		C-g
 	   Copy selection		Enter		M-w
+	   Copy to named buffer		"
 	   Cursor down			j		Down
 	   Cursor left			h		Left
 	   Cursor right			l		Right
@@ -459,12 +475,12 @@ WINDOWS AND PANES
 	   Go to line			:		g
 	   Half page down		C-d		M-Down
 	   Half page up			C-u		M-Up
-	   Jump forward			f		f
-	   Jump to forward		t
-	   Jump backward		F		F
-	   Jump to backward		T
 	   Jump again			;		;
 	   Jump again in reverse	,		,
+	   Jump backward		F		F
+	   Jump forward			f		f
+	   Jump to backward		T
+	   Jump to forward		t
 	   Next page			C-f		Page down
 	   Next space			W
 	   Next space, end of word	E
@@ -473,8 +489,8 @@ WINDOWS AND PANES
 	   Other end of selection	o
 	   Paste buffer			p		C-y
 	   Previous page		C-b		Page up
-	   Previous word		b		M-b
 	   Previous space		B
+	   Previous word		b		M-b
 	   Quit mode			q		Escape
 	   Rectangle toggle		v		R
 	   Scroll down			C-Down or C-e	C-Down
@@ -483,6 +499,7 @@ WINDOWS AND PANES
 	   Search again in reverse	N		N
 	   Search backward		?		C-r
 	   Search forward		/		C-s
+	   Select line			V
 	   Start of line		0		C-a
 	   Start selection		Space		C-Space
 	   Top of history		g		M->
@@ -504,9 +521,6 @@ WINDOWS AND PANES
      the Alt (meta) key and a number begins prefix entry.  For example, to
      move the cursor forward by ten words, use ‘M-1 0 M-f’ in emacs mode, and
      ‘10w’ in vi.
-
-     When copying the selection, the repeat count indicates the buffer index
-     to replace, if used.
 
      Mode key bindings are defined in a set of named tables: vi-edit and
      emacs-edit for keys used when line editing at the command prompt;
@@ -589,7 +603,7 @@ WINDOWS AND PANES
 	     uses the format ‘#{session_name}:#{window_index}’ but a different
 	     format may be specified with -F.
 
-     capture-pane [-aepPq] [-b buffer-index] [-E end-line] [-S start-line] [-t
+     capture-pane [-aepPq] [-b buffer-name] [-E end-line] [-S start-line] [-t
 	     target-pane]
 		   (alias: capturep)
 	     Capture the contents of a pane.  If -p is given, the output goes
@@ -606,8 +620,9 @@ WINDOWS AND PANES
 
 	     -S and -E specify the starting and ending line numbers, zero is
 	     the first line of the visible pane and negative numbers are lines
-	     in the history.  The default is to capture only the visible con-
-	     tents of the pane.
+	     in the history.  ‘-’ to -S is the start of the history and to -E
+	     the end of the visible pane.  The default is to capture only the
+	     visible contents of the pane.
 
      choose-client [-F format] [-t target-window] [template]
 	     Put a window into client choice mode, allowing a client to be
@@ -615,17 +630,6 @@ WINDOWS AND PANES
 	     ‘%%’ is replaced by the client pty(7) path in template and the
 	     result executed as a command.  If template is not given, "detach-
 	     client -t ’%%’" is used.  For the meaning of the -F flag, see the
-	     FORMATS section.  This command works only if at least one client
-	     is attached.
-
-     choose-list [-l items] [-t target-window] [template]
-	     Put a window into list choice mode, allowing items to be
-	     selected.	items can be a comma-separated list to display more
-	     than one item.  If an item has spaces, that entry must be quoted.
-	     After an item is chosen, ‘%%’ is replaced by the chosen item in
-	     the template and the result is executed as a command.  If
-	     template is not given, "run-shell ’%%’" is used.  items also
-	     accepts format specifiers.	 For the meaning of this see the
 	     FORMATS section.  This command works only if at least one client
 	     is attached.
 
@@ -716,9 +720,10 @@ WINDOWS AND PANES
 	     it from any sessions to which it is linked.  The -a option kills
 	     all but the window given with -t.
 
-     last-pane [-t target-window]
+     last-pane [-de] [-t target-window]
 		   (alias: lastp)
-	     Select the last (previously selected) pane.
+	     Select the last (previously selected) pane.  -e enables or -d
+	     disables input to the pane.
 
      last-window [-t target-session]
 		   (alias: last)
@@ -862,12 +867,13 @@ WINDOWS AND PANES
 	     -p are equivalent to the next-layout and previous-layout com-
 	     mands.
 
-     select-pane [-lDLRU] [-t target-pane]
+     select-pane [-DdeLlRU] [-t target-pane]
 		   (alias: selectp)
 	     Make pane target-pane the active pane in window target-window.
 	     If one of -D, -L, -R, or -U is used, respectively the pane below,
 	     to the left, to the right, or above the target pane is used.  -l
-	     is the same as using the last-pane command.
+	     is the same as using the last-pane command.  -e enables or -d
+	     disables input to the pane.
 
      select-window [-lnpT] [-t target-window]
 		   (alias: selectw)
@@ -876,15 +882,17 @@ WINDOWS AND PANES
 	     -T is given and the selected window is already the current win-
 	     dow, the command behaves like last-window.
 
-     split-window [-dhvP] [-c start-directory] [-l size | -p percentage] [-t
+     split-window [-bdhvP] [-c start-directory] [-l size | -p percentage] [-t
 	     target-pane] [shell-command] [-F format]
 		   (alias: splitw)
 	     Create a new pane by splitting target-pane: -h does a horizontal
 	     split and -v a vertical split; if neither is specified, -v is
 	     assumed.  The -l and -p options specify the size of the new pane
 	     in lines (for vertical split) or in cells (for horizontal split),
-	     or as a percentage, respectively.	All other options have the
-	     same meaning as for the new-window command.
+	     or as a percentage, respectively.	The -b option causes the new
+	     pane to be created to the left of or above target-pane.  All
+	     other options have the same meaning as for the new-window com-
+	     mand.
 
      swap-pane [-dDU] [-s src-pane] [-t dst-pane]
 		   (alias: swapp)
@@ -912,7 +920,7 @@ KEY BINDINGS
      ‘Z’).  Ctrl keys may be prefixed with ‘C-’ or ‘^’, and Alt (meta) with
      ‘M-’.  In addition, the following special key names are accepted: Up,
      Down, Left, Right, BSpace, BTab, DC (Delete), End, Enter, Escape, F1 to
-     F20, Home, IC (Insert), NPage/PageDown/PgDn, PPage/PageUp/PgUp, Space,
+     F12, Home, IC (Insert), NPage/PageDown/PgDn, PPage/PageUp/PgUp, Space,
      and Tab.  Note that to bind the ‘"’ or ‘’’ keys, quotation marks are nec-
      essary, for example:
 
@@ -921,7 +929,7 @@ KEY BINDINGS
 
      Commands related to key bindings are as follows:
 
-     bind-key [-cnr] [-t key-table] key command [arguments]
+     bind-key [-cnr] [-t mode-table] key command [arguments]
 		   (alias: bind)
 	     Bind key key to command.  By default (without -t) the primary key
 	     bindings are modified (those normally activated with the prefix
@@ -929,8 +937,8 @@ KEY BINDINGS
 	     use the prefix key, command is bound to key alone.	 The -r flag
 	     indicates this key may repeat, see the repeat-time option.
 
-	     If -t is present, key is bound in key-table: the binding for com-
-	     mand mode with -c or for normal mode without.  To view the
+	     If -t is present, key is bound in mode-table: the binding for
+	     command mode with -c or for normal mode without.  To view the
 	     default bindings and possible commands, see the list-keys com-
 	     mand.
 
@@ -956,14 +964,14 @@ KEY BINDINGS
 	     Send the prefix key, or with -2 the secondary prefix key, to a
 	     window as if it was pressed.
 
-     unbind-key [-acn] [-t key-table] key
+     unbind-key [-acn] [-t mode-table] key
 		   (alias: unbind)
 	     Unbind the command bound to key.  Without -t the primary key
 	     bindings are modified; in this case, if -n is specified, the com-
 	     mand bound to key without a prefix (if any) is removed.  If -a is
 	     present, all key bindings are removed.
 
-	     If -t is present, key in key-table is unbound: the binding for
+	     If -t is present, key in mode-table is unbound: the binding for
 	     command mode with -c or for normal mode without.
 
 OPTIONS
@@ -1010,8 +1018,7 @@ OPTIONS
 
 	     The -o flag prevents setting an option that is already set.
 
-	     The -q flag suppresses the informational message (as if the quiet
-	     server option was set).
+	     The -q flag suppresses errors about unknown options.
 
 	     With -a, and if the option expects a string or a style, value is
 	     appended to the existing setting.	For example:
@@ -1055,9 +1062,9 @@ OPTIONS
 		     ning in tmux.  Attached clients should be detached and
 		     attached again after changing this option.
 
-	     quiet [on | off]
-		     Enable or disable the display of various informational
-		     messages (see also the -q command line flag).
+	     message-limit number
+		     Set the number of error or information messages to save
+		     in the message log for each client.  The default is 100.
 
 	     set-clipboard [on | off]
 		     Attempt to set the terminal clipboard content using the
@@ -1071,6 +1078,27 @@ OPTIONS
 
 		     Or changing this property from the xterm(1) interactive
 		     menu when required.
+
+	     terminal-overrides string
+		     Contains a list of entries which override terminal
+		     descriptions read using terminfo(5).  string is a comma-
+		     separated list of items each a colon-separated string
+		     made up of a terminal type pattern (matched using
+		     fnmatch(3)) and a set of name=value entries.
+
+		     For example, to set the ‘clear’ terminfo(5) entry to
+		     ‘\e[H\e[2J’ for all terminal types and the ‘dch1’ entry
+		     to ‘\e[P’ for the ‘rxvt’ terminal type, the option could
+		     be set to the string:
+
+			   "*:clear=\e[H\e[2J,rxvt:dch1=\e[P"
+
+		     The terminal entry value is passed through strunvis(3)
+		     before interpretation.  The default value forcibly cor-
+		     rects the ‘colors’ entry for terminals which support 256
+		     colours:
+
+			   "*256col*:colors=256,xterm*:XT"
 
 	     Available session options are:
 
@@ -1196,10 +1224,6 @@ OPTIONS
 		     With the -a flag to the set-option command the new style
 		     is added otherwise the existing style is replaced.
 
-	     message-limit number
-		     Set the number of error or information messages to save
-		     in the message log for each client.  The default is 20.
-
 	     message-style style
 		     Set status line message style.  For how to specify style,
 		     see the message-command-style option.
@@ -1221,16 +1245,6 @@ OPTIONS
 	     mouse-utf8 [on | off]
 		     If enabled, request mouse input as UTF-8 on UTF-8 termi-
 		     nals.
-
-	     pane-active-border-style style
-		     Set the pane border style for the currently active pane.
-		     For how to specify style, see the message-command-style
-		     option.  Attributes are ignored.
-
-	     pane-border-style style
-		     Set the pane border style for paneas aside from the
-		     active pane.  For how to specify style, see the
-		     message-command-style option.  Attributes are ignored.
 
 	     prefix key
 		     Set the key accepted as a prefix key.
@@ -1321,12 +1335,10 @@ OPTIONS
 			   #(sysctl vm.loadavg)
 			   #[fg=yellow,bold]#(apm -l)%%#[default] [#S]
 
-		     Where appropriate, special character sequences may be
-		     prefixed with a number to specify the maximum length, for
-		     example ‘#24T’.
-
 		     By default, UTF-8 in string is not interpreted, to enable
 		     UTF-8, use the status-utf8 option.
+
+		     The default is ‘[#S] ’.
 
 	     status-left-length length
 		     Set the maximum length of the left component of the sta-
@@ -1367,27 +1379,6 @@ OPTIONS
 		     this is important for wide characters.  This option
 		     defaults to off.
 
-	     terminal-overrides string
-		     Contains a list of entries which override terminal
-		     descriptions read using terminfo(5).  string is a comma-
-		     separated list of items each a colon-separated string
-		     made up of a terminal type pattern (matched using
-		     fnmatch(3)) and a set of name=value entries.
-
-		     For example, to set the ‘clear’ terminfo(5) entry to
-		     ‘\e[H\e[2J’ for all terminal types and the ‘dch1’ entry
-		     to ‘\e[P’ for the ‘rxvt’ terminal type, the option could
-		     be set to the string:
-
-			   "*:clear=\e[H\e[2J,rxvt:dch1=\e[P"
-
-		     The terminal entry value is passed through strunvis(3)
-		     before interpretation.  The default value forcibly cor-
-		     rects the ‘colors’ entry for terminals which support 256
-		     colours:
-
-			   "*256col*:colors=256,xterm*:XT"
-
 	     update-environment variables
 		     Set a space-separated string containing a list of envi-
 		     ronment variables to be copied into the session environ-
@@ -1409,11 +1400,6 @@ OPTIONS
 		     instead of it being passed through to the terminal (which
 		     normally makes a sound).  Also see the bell-action
 		     option.
-
-	     visual-content [on | off]
-		     Like visual-activity, display a message when content is
-		     present in a window for which the monitor-content window
-		     option is enabled.
 
 	     visual-silence [on | off]
 		     If monitor-silence is enabled, prints a message after the
@@ -1523,11 +1509,6 @@ OPTIONS
 		     Monitor for activity in the window.  Windows with activ-
 		     ity are highlighted in the status line.
 
-	     monitor-content match-string
-		     Monitor content in the window.  When fnmatch(3) pattern
-		     match-string appears in the window, it is highlighted in
-		     the status line.
-
 	     monitor-silence [interval]
 		     Monitor for silence (no activity) in the window within
 		     interval seconds.	Windows that have been silent for the
@@ -1546,9 +1527,19 @@ OPTIONS
 		     Like other-pane-height, but set the width of other panes
 		     in the main-vertical layout.
 
+	     pane-active-border-style style
+		     Set the pane border style for the currently active pane.
+		     For how to specify style, see the message-command-style
+		     option.  Attributes are ignored.
+
 	     pane-base-index index
 		     Like base-index, but set the starting index for pane num-
 		     bers.
+
+	     pane-border-style style
+		     Set the pane border style for panes aside from the active
+		     pane.  For how to specify style, see the
+		     message-command-style option.  Attributes are ignored.
 
 	     remain-on-exit [on | off]
 		     A window with this flag set is not destroyed when the
@@ -1572,11 +1563,6 @@ OPTIONS
 	     window-status-bell-style style
 		     Set status line style for windows with a bell alert.  For
 		     how to specify style, see the message-command-style
-		     option.
-
-	     window-status-content-style style
-		     Set status line style for windows with a content alert.
-		     For how to specify style, see the message-command-style
 		     option.
 
 	     window-status-current-format string
@@ -1636,16 +1622,20 @@ FORMATS
      Certain commands accept the -F flag with a format argument.  This is a
      string which controls the output format of the command.  Replacement
      variables are enclosed in ‘#{’ and ‘}’, for example ‘#{session_name}’.
-     Some variables also have an shorter alias such as ‘#S’.  ‘##’ is replaced
-     by a single ‘#’.  Conditionals are also accepted by prefixing with ‘?’
-     and separating two alternatives with a comma; if the specified variable
-     exists and is not zero, the first alternative is chosen, otherwise the
-     second is used.  For example ‘#{?session_attached,attached,not attached}’
-     will include the string ‘attached’ if the session is attached and the
-     string ‘not attached’ if it is unattached.	 A limit may be placed on the
-     length of the resultant string by prefixing it by an ‘=’, a number and a
-     colon, so ‘#{=10:pane_title}’ will include at most the first 10 charac-
-     ters of the pane title.
+     The possible variables are listed in the table below, or the name of a
+     tmux option may be used for an option’s value.  Some variables have a
+     shorter alias such as ‘#S’, and ‘##’ is replaced by a single ‘#’.
+
+     Conditionals are available by prefixing with ‘?’ and separating two
+     alternatives with a comma; if the specified variable exists and is not
+     zero, the first alternative is chosen, otherwise the second is used.  For
+     example ‘#{?session_attached,attached,not attached}’ will include the
+     string ‘attached’ if the session is attached and the string ‘not
+     attached’ if it is unattached, or ‘#{?automatic-rename,yes,no}’ will
+     include ‘yes’ if automatic-rename is enabled, or ‘no’ if not.  A limit
+     may be placed on the length of the resultant string by prefixing it by an
+     ‘=’, a number and a colon, so ‘#{=10:pane_title}’ will include at most
+     the first 10 characters of the pane title.
 
      The following variables are available, where appropriate:
 
@@ -1653,7 +1643,7 @@ FORMATS
      alternate_on		     If pane is in alternate screen
      alternate_saved_x		     Saved cursor X in alternate screen
      alternate_saved_y		     Saved cursor Y in alternate screen
-     buffer_sample		     First 50 characters from buffer
+     buffer_sample		     Sample of start of buffer
      buffer_size		     Size of the specified buffer in bytes
      client_activity		     Integer time client last had activity
      client_activity_string	     String time client last had activity
@@ -1685,49 +1675,56 @@ FORMATS
      mouse_standard_flag	     Pane mouse standard flag
      mouse_utf8_flag		     Pane mouse UTF-8 flag
      pane_active		     1 if active pane
+     pane_bottom		     Bottom of pane
      pane_current_command	     Current command if available
      pane_current_path		     Current path if available
      pane_dead			     1 if pane is dead
+     pane_dead_status		     Exit status of process in dead pane
      pane_height		     Height of pane
      pane_id		    #D	     Unique pane ID
      pane_in_mode		     If pane is in a mode
-     pane_synchronized		     If pane is synchronized
+     pane_input_off		     If input to pane is disabled
      pane_index		    #P	     Index of pane
+     pane_left			     Left of pane
      pane_pid			     PID of first process in pane
+     pane_right			     Right of pane
      pane_start_command		     Command pane started with
-     pane_start_path		     Path pane started with
+     pane_synchronized		     If pane is synchronized
      pane_tabs			     Pane tab positions
      pane_title		    #T	     Title of pane
+     pane_top			     Top of pane
      pane_tty			     Pseudo terminal of pane
      pane_width			     Width of pane
      saved_cursor_x		     Saved cursor X in pane
      saved_cursor_y		     Saved cursor Y in pane
      scroll_region_lower	     Bottom of scroll region in pane
      scroll_region_upper	     Top of scroll region in pane
-     session_attached		     1 if session attached
+     session_attached		     Number of clients session is attached to
      session_created		     Integer time session created
      session_created_string	     String time session created
      session_group		     Number of session group
      session_grouped		     1 if session in a group
      session_height		     Height of session
      session_id			     Unique session ID
+     session_many_attached	     1 if multiple clients attached
      session_name	    #S	     Name of session
      session_width		     Width of session
      session_windows		     Number of windows in session
      window_active		     1 if window active
      window_activity_flag	     1 if window has activity alert
      window_bell_flag		     1 if window has bell
-     window_content_flag	     1 if window has content alert
      window_find_matches	     Matched data from the find-window
      window_flags	    #F	     Window flags
      window_height		     Height of window
      window_id			     Unique window ID
      window_index	    #I	     Index of window
+     window_last_flag		     1 if window is the last used
      window_layout		     Window layout description
      window_name	    #W	     Name of window
      window_panes		     Number of panes in window
      window_silence_flag	     1 if window has silence alert
      window_width		     Width of window
+     window_zoomed_flag		     1 if window is zoomed
      wrap_flag			     Pane wrap flag
 
 NAMES AND TITLES
@@ -1811,14 +1808,13 @@ STATUS LINE
 	   -	     Marks the last window (previously selected).
 	   #	     Window is monitored and activity has been detected.
 	   !	     A bell has occurred in the window.
-	   +	     Window is monitored for content and it has appeared.
 	   ~	     The window has been silent for the monitor-silence
 				interval.
 	   Z	     The window’s active pane is zoomed.
 
-     The # symbol relates to the monitor-activity and + to the monitor-content
-     window options.  The window name is printed in inverted colours if an
-     alert (bell, activity or content) is present.
+     The # symbol relates to the monitor-activity window option.  The window
+     name is printed in inverted colours if an alert (bell, activity or
+     silence) is present.
 
      The colour and attributes of the status line may be configured, the
      entire status line using the status-style session option and individual
@@ -1868,11 +1864,19 @@ STATUS LINE
 	     active pane for the session attached to target-client.
 
 BUFFERS
-     tmux maintains a stack of paste buffers.  Up to the value of the
-     buffer-limit option are kept; when a new buffer is added, the buffer at
-     the bottom of the stack is removed.  Buffers may be added using copy-mode
-     or the set-buffer command, and pasted into a window using the
-     paste-buffer command.
+     tmux maintains a set of named paste buffers.  Each buffer may be either
+     explicitly or automatically named.	 Explicitly named buffers are named
+     when created with the set-buffer or load-buffer commands, or by renaming
+     an automatically named buffer with set-buffer -n.	Automatically named
+     buffers are given a name such as ‘buffer0001’, ‘buffer0002’ and so on.
+     When the buffer-limit option is reached, the oldest automatically named
+     buffer is deleted.	 Explicitly named are not subject to buffer-limit and
+     may be deleted with delete-buffer command.
+
+     Buffers may be added using copy-mode or the set-buffer and load-buffer
+     commands, and pasted into a window using the paste-buffer command.	 If a
+     buffer command is used and no buffer is specified, the most recently
+     added automatically named buffer is assumed.
 
      A configurable history buffer is also maintained for each window.	By
      default, up to 2000 lines are kept; this can be altered with the
@@ -1883,7 +1887,7 @@ BUFFERS
      choose-buffer [-F format] [-t target-window] [template]
 	     Put a window into buffer choice mode, where a buffer may be cho-
 	     sen interactively from a list.  After a buffer is selected, ‘%%’
-	     is replaced by the buffer index in template and the result exe-
+	     is replaced by the buffer name in template and the result exe-
 	     cuted as a command.  If template is not given, "paste-buffer -b
 	     ’%%’" is used.  For the meaning of the -F flag, see the FORMATS
 	     section.  This command works only if at least one client is
@@ -1893,42 +1897,44 @@ BUFFERS
 		   (alias: clearhist)
 	     Remove and free the history for the specified pane.
 
-     delete-buffer [-b buffer-index]
+     delete-buffer [-b buffer-name]
 		   (alias: deleteb)
-	     Delete the buffer at buffer-index, or the top buffer if not spec-
-	     ified.
+	     Delete the buffer named buffer-name, or the most recently added
+	     automatically named buffer if not specified.
 
      list-buffers [-F format]
 		   (alias: lsb)
 	     List the global buffers.  For the meaning of the -F flag, see the
 	     FORMATS section.
 
-     load-buffer [-b buffer-index] path
+     load-buffer [-b buffer-name] path
 		   (alias: loadb)
 	     Load the contents of the specified paste buffer from path.
 
-     paste-buffer [-dpr] [-b buffer-index] [-s separator] [-t target-pane]
+     paste-buffer [-dpr] [-b buffer-name] [-s separator] [-t target-pane]
 		   (alias: pasteb)
 	     Insert the contents of a paste buffer into the specified pane.
 	     If not specified, paste into the current one.  With -d, also
-	     delete the paste buffer from the stack.  When output, any line-
-	     feed (LF) characters in the paste buffer are replaced with a sep-
-	     arator, by default carriage return (CR).  A custom separator may
-	     be specified using the -s flag.  The -r flag means to do no
-	     replacement (equivalent to a separator of LF).  If -p is speci-
-	     fied, paste bracket control codes are inserted around the buffer
-	     if the application has requested bracketed paste mode.
+	     delete the paste buffer.  When output, any linefeed (LF) charac-
+	     ters in the paste buffer are replaced with a separator, by
+	     default carriage return (CR).  A custom separator may be speci-
+	     fied using the -s flag.  The -r flag means to do no replacement
+	     (equivalent to a separator of LF).	 If -p is specified, paste
+	     bracket control codes are inserted around the buffer if the
+	     application has requested bracketed paste mode.
 
-     save-buffer [-a] [-b buffer-index] path
+     save-buffer [-a] [-b buffer-name] path
 		   (alias: saveb)
 	     Save the contents of the specified paste buffer to path.  The -a
 	     option appends to rather than overwriting the file.
 
-     set-buffer [-b buffer-index] data
+     set-buffer [-a] [-b buffer-name] [-n new-buffer-name] data
 		   (alias: setb)
-	     Set the contents of the specified buffer to data.
+	     Set the contents of the specified buffer to data.	The -a option
+	     appends to rather than overwriting the buffer.  The -n option
+	     renames the buffer to new-buffer-name.
 
-     show-buffer [-b buffer-index]
+     show-buffer [-b buffer-name]
 		   (alias: showb)
 	     Display the contents of the specified buffer.
 
@@ -1938,13 +1944,16 @@ MISCELLANEOUS
      clock-mode [-t target-pane]
 	     Display a large clock.
 
-     if-shell [-b] [-t target-pane] shell-command command [command]
+     if-shell [-bF] [-t target-pane] shell-command command [command]
 		   (alias: if)
 	     Execute the first command if shell-command returns success or the
 	     second command otherwise.	Before being executed, shell-command
 	     is expanded using the rules specified in the FORMATS section,
 	     including those relevant to target-pane.  With -b, shell-command
 	     is run in the background.
+
+	     If -F is given, shell-command is not executed but considered suc-
+	     cess if neither empty nor zero (after formats are expanded).
 
      lock-server
 		   (alias: lock)
@@ -1979,13 +1988,13 @@ TERMINFO EXTENSIONS
 
 		   $ printf ’\033]12;red\033\\’
 
-     Ss, Se  Change the cursor style.  If set, a sequence such as this may be
-	     used to change the cursor to an underline:
+     Ss, Se  Set or reset the cursor style.  If set, a sequence such as this
+	     may be used to change the cursor to an underline:
 
 		   $ printf ’\033[4 q’
 
-	     If Csr is set, it will be used to reset the cursor style instead
-	     of Cs.
+	     If Se is not set, Ss with argument 0 will be used to reset the
+	     cursor style instead.
 
      Ms	     This sequence can be used by tmux to store the current buffer in
 	     the host terminal’s selection (clipboard).	 See the set-clipboard
