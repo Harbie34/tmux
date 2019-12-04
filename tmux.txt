@@ -61,12 +61,12 @@ DESCRIPTION
 		   mands.
 
      -L socket-name
-		   tmux stores the server socket in a directory under /tmp;
-		   the default socket is named default.	 This option allows a
-		   different socket name to be specified, allowing several
-		   independent tmux servers to be run.	Unlike -S a full path
-		   is not necessary: the sockets are all created in the same
-		   directory.
+		   tmux stores the server socket in a directory under /tmp (or
+		   TMPDIR if set); the default socket is named default.	 This
+		   option allows a different socket name to be specified,
+		   allowing several independent tmux servers to be run.
+		   Unlike -S a full path is not necessary: the sockets are all
+		   created in the same directory.
 
 		   If the socket is accidentally removed, the SIGUSR1 signal
 		   may be sent to the tmux server process to recreate it.
@@ -119,6 +119,7 @@ KEY BINDINGS
 	   !	       Break the current pane out of the window.
 	   "	       Split the current pane into two, top and bottom.
 	   #	       List all paste buffers.
+	   $	       Rename the current session.
 	   %	       Split the current pane into two, left and right.
 	   &	       Kill the current window.
 	   ’	       Prompt for a window index to select.
@@ -225,6 +226,12 @@ COMMANDS
      When dealing with a session that doesn’t contain sequential window
      indexes, they will be correctly skipped.
 
+     tmux also gives each pane created in a server an identifier consisting of
+     a ‘%’ and a number, starting from zero.  A pane’s identifier is unique
+     for the life of the tmux server and is passed to the child process of the
+     pane in the TMUX_PANE environment variable.  It may be used alone to tar-
+     get a pane or the window containing it.
+
      shell-command arguments are sh(1) commands.  These must be passed as a
      single item, which typically means quoting them, for example:
 
@@ -288,10 +295,16 @@ CLIENTS AND SESSIONS
 	     this will fail unless sessions are created in the configuration
 	     file.
 
-     detach-client [-t target-client]
+	     The target-session rules for attach-session are slightly
+	     adjusted: if tmux needs to select the most recently used session,
+	     it will prefer the most recently used unattached session.
+
+     detach-client [-P] [-s target-session] [-t target-client]
 		   (alias: detach)
-	     Detach the current client if bound to a key, or the specified
-	     client with -t.
+	     Detach the current client if bound to a key, the client specified
+	     with -t, or all clients currently attached to to the session
+	     specified by -s.  If -P is given, send SIGHUP to the parent pro-
+	     cess of the client, typically causing it to exit.
 
      has-session [-t target-session]
 		   (alias: has)
@@ -305,9 +318,10 @@ CLIENTS AND SESSIONS
 	     Destroy the given session, closing any windows linked to it and
 	     no other sessions, and detaching all clients attached to it.
 
-     list-clients
+     list-clients [-t target-session]
 		   (alias: lsc)
-	     List all clients attached to the server.
+	     List all clients attached to the server.  If target-session is
+	     specified, list only clients connected to that session.
 
      list-commands
 		   (alias: lscm)
@@ -326,13 +340,15 @@ CLIENTS AND SESSIONS
 	     Lock all clients attached to target-session.
 
      new-session [-d] [-n window-name] [-s session-name] [-t target-session]
-	     [shell-command]
+	     [-x width] [-y height] [shell-command]
 		   (alias: new)
 	     Create a new session with name session-name.
 
 	     The new session is attached to the current terminal unless -d is
 	     given.  window-name and shell-command are the name of and shell
-	     command to execute in the initial window.
+	     command to execute in the initial window.	If -d is used, -x and
+	     -y specify the size of the initial window (80 by 24 if not
+	     given).
 
 	     If run from a terminal, any termios(4) special characters are
 	     saved and used for new windows in the new session.
@@ -370,7 +386,7 @@ CLIENTS AND SESSIONS
 	     Start the tmux server, if not already running, without creating
 	     any sessions.
 
-     suspend-client [-c target-client]
+     suspend-client [-t target-client]
 		   (alias: suspendc)
 	     Suspend a client by sending SIGTSTP (tty stop).
 
@@ -406,7 +422,7 @@ WINDOWS AND PANES
 	   Cursor to top line		H		M-R
 	   Cursor up			k		Up
 	   Delete entire line		d		C-u
-	   Delete to end of line	D		C-k
+	   Delete/Copy to end of line	D		C-k
 	   End of line			$		C-e
 	   Go to line			:		g
 	   Half page down		C-d		M-Down
@@ -527,10 +543,16 @@ WINDOWS AND PANES
 	     only pane in a new window.	 If -d is given, the new window does
 	     not become the current window.
 
-     capture-pane [-b buffer-index] [-t target-pane]
+     capture-pane [-b buffer-index] [-E end-line] [-S start-line] [-t
+	     target-pane]
 		   (alias: capturep)
 	     Capture the contents of a pane to the specified buffer, or a new
 	     buffer if none is specified.
+
+	     -S and -E specify the starting and ending line numbers, zero is
+	     the first line of the visible pane and negative numbers are lines
+	     in the history.  The default is to capture only the visible con-
+	     tents of the pane.
 
      choose-client [-t target-window] [template]
 	     Put a window into client choice mode, allowing a client to be
@@ -604,20 +626,24 @@ WINDOWS AND PANES
 	     killed, otherwise an error is generated.  If -d is given, the
 	     newly linked window is not selected.
 
-     list-panes [-t target-window]
+     list-panes [-as] [-t target]
 		   (alias: lsp)
-	     List the panes in the current window or in target-window.
+	     If -a is given, target is ignored and all panes on the server are
+	     listed.  If -s is given, target is a session (or the current ses-
+	     sion).  If neither is given, target is a window (or the current
+	     window).
 
-     list-windows [-t target-session]
+     list-windows [-a] [-t target-session]
 		   (alias: lsw)
-	     List windows in the current session or in target-session.
+	     If -a is given, list all windows on the server.  Otherwise, list
+	     windows in the current session or in target-session.
 
      move-window [-dk] [-s src-window] [-t dst-window]
 		   (alias: movew)
 	     This is similar to link-window, except the window at src-window
 	     is moved to dst-window.
 
-     new-window [-adk] [-n window-name] [-t target-window] [shell-command]
+     new-window [-adkP] [-n window-name] [-t target-window] [shell-command]
 		   (alias: neww)
 	     Create a new window.  With -a, the new window is inserted at the
 	     next index up from the specified target-window, moving windows up
@@ -638,6 +664,9 @@ WINDOWS AND PANES
 	     have “TERM=screen” added to their environment, but care must be
 	     taken not to reset this in shell start-up files.
 
+	     The -P option prints the location of the new window after it has
+	     been created.
+
      next-layout [-t target-window]
 		   (alias: nextl)
 	     Move a window to the next layout and rearrange the panes to fit.
@@ -653,7 +682,7 @@ WINDOWS AND PANES
 	     command.  A pane may only be piped to one command at a time, any
 	     existing pipe is closed before shell-command is executed.	The
 	     shell-command string may contain the special character sequences
-	     supported by the status-left command.  If no shell-command is
+	     supported by the status-left option.  If no shell-command is
 	     given, the current pipe (if any) is closed.
 
 	     The -o option only opens a new pipe if no previous pipe exists,
@@ -681,6 +710,14 @@ WINDOWS AND PANES
 	     the left with -L and to the right with -R.	 The adjustment is
 	     given in lines or cells (the default is 1).
 
+     respawn-pane [-k] [-t target-pane] [shell-command]
+		   (alias: respawnp)
+	     Reactivate a pane in which the command has exited (see the
+	     remain-on-exit window option).  If shell-command is not given,
+	     the command used when the pane was created is executed.  The pane
+	     must be already inactive, unless -k is given, in which case any
+	     existing command is killed.
+
      respawn-window [-k] [-t target-window] [shell-command]
 		   (alias: respawnw)
 	     Reactivate a window in which the command has exited (see the
@@ -694,22 +731,26 @@ WINDOWS AND PANES
 	     Rotate the positions of the panes within a window, either upward
 	     (numerically lower) with -U or downward (numerically higher).
 
-     select-layout [-t target-window] [layout-name]
+     select-layout [-np] [-t target-window] [layout-name]
 		   (alias: selectl)
 	     Choose a specific layout for a window.  If layout-name is not
-	     given, the last preset layout used (if any) is reapplied.
+	     given, the last preset layout used (if any) is reapplied.	-n and
+	     -p are equivalent to the next-layout and previous-layout com-
+	     mands.
 
-     select-pane [-DLRU] [-t target-pane]
+     select-pane [-lDLRU] [-t target-pane]
 		   (alias: selectp)
 	     Make pane target-pane the active pane in window target-window.
 	     If one of -D, -L, -R, or -U is used, respectively the pane below,
-	     to the left, to the right, or above the target pane is used.
+	     to the left, to the right, or above the target pane is used.  -l
+	     is the same as using the last-pane command.
 
-     select-window [-t target-window]
+     select-window [-lnp] [-t target-window]
 		   (alias: selectw)
-	     Select the window at target-window.
+	     Select the window at target-window.  -l, -n and -p are equivalent
+	     to the last-window, next-window and previous-window commands.
 
-     split-window [-dhv] [-l size | -p percentage] [-t target-pane]
+     split-window [-dhvP] [-l size | -p percentage] [-t target-pane]
 	     [shell-command]
 		   (alias: splitw)
 	     Create a new pane by splitting target-pane: -h does a horizontal
@@ -838,18 +879,36 @@ OPTIONS
 
 	     Available server options are:
 
-	     escape-time
+	     buffer-limit number
+		     Set the number of buffers; as new buffers are added to
+		     the top of the stack, old ones are removed from the bot-
+		     tom if necessary to maintain this maximum length.
+
+	     set-clipboard [on | off]
+		     Attempt to set the terminal clipboard content using the
+		     \e]52;...\007 xterm(1) escape sequences.  This option is
+		     on by default if there is an Ms entry in the terminfo(5)
+		     description for the client terminal.  Note that this fea-
+		     ture needs to be enabled in xterm(1) by setting the
+		     resource:
+
+			   disallowedWindowOps: 20,21,SetXprop
+
+		     Or changing this property from the xterm(1) interactive
+		     menu when required.
+
+	     escape-time time
 		     Set the time in milliseconds for which tmux waits after
 		     an escape is input to determine if it is part of a func-
 		     tion or meta key sequences.  The default is 500 millisec-
 		     onds.
 
-	     exit-unattached
+	     exit-unattached [on | off]
 		     If enabled, the server will exit when there are no
-		     attached clients, rather than when there are no attached
-		     sessions.
+		     attached clients.
 
-	     quiet   Enable or disable the display of various informational
+	     quiet [on | off]
+		     Enable or disable the display of various informational
 		     messages (see also the -q command line flag).
 
 	     Available session options are:
@@ -866,11 +925,9 @@ OPTIONS
 		     current means only bell in windows other than the current
 		     window are ignored.
 
-	     buffer-limit number
-		     Set the number of buffers kept for each session; as new
-		     buffers are added to the top of the stack, old ones are
-		     removed from the bottom if necessary to maintain this
-		     maximum length.
+	     bell-on-alert [on | off]
+		     If on, ring the terminal bell when an activity, content
+		     or silence alert occurs.
 
 	     default-command shell-command
 		     Set the command used for new windows (if not specified
@@ -902,11 +959,11 @@ OPTIONS
 		     able.  For tmux to work correctly, this must be set to
 		     ‘screen’ or a derivative of it.
 
-	     destroy-unattached
+	     destroy-unattached [on | off]
 		     If enabled and the session is no longer attached to any
 		     clients, it is destroyed.
 
-	     detach-on-destroy
+	     detach-on-destroy [on | off]
 		     If on (the default), the client is detached when the ses-
 		     sion it is attached to is destroyed.  If off, the client
 		     is switched to the most recently active of the remaining
@@ -962,7 +1019,9 @@ OPTIONS
 		     Set status line message background colour, where colour
 		     is one of: black, red, green, yellow, blue, magenta,
 		     cyan, white, colour0 to colour255 from the 256-colour
-		     palette, or default.
+		     set, default, or a hexadecimal RGB string such as
+		     ‘#ffffff’, which chooses the closest match from the
+		     default 256-colour set.
 
 	     message-fg colour
 		     Set status line message foreground colour.
@@ -971,11 +1030,19 @@ OPTIONS
 		     Set the number of error or information messages to save
 		     in the message log for each client.  The default is 20.
 
+	     mouse-resize-pane [on | off]
+		     If on, tmux captures the mouse and allows panes to be
+		     resized by dragging on their borders.
+
 	     mouse-select-pane [on | off]
 		     If on, tmux captures the mouse and when a window is split
 		     into multiple panes the mouse may be used to select the
 		     current pane.  The mouse click is also passed through to
 		     the application as normal.
+
+	     mouse-select-window [on | off]
+		     If on, clicking the mouse on a window name in the status
+		     line will select that window.
 
 	     pane-active-border-bg colour
 
@@ -1000,6 +1067,10 @@ OPTIONS
 		     when it is bound using the -r flag to bind-key.  Repeat
 		     is enabled for the default keys bound to the resize-pane
 		     command.
+
+	     mouse-utf8 [on | off]
+		     If enabled, request mouse input as UTF-8 on UTF-8 termi-
+		     nals.
 
 	     set-remain-on-exit [on | off]
 		     Set the remain-on-exit window option for any windows
@@ -1059,6 +1130,8 @@ OPTIONS
 							      output
 			   #[attributes]     Colour or attribute change
 			   #H		     Hostname of local host
+			   #h		     Hostname of local host without
+							      the domain name
 			   #F		     Current window flag
 			   #I		     Current window index
 			   #P		     Current pane index
@@ -1165,7 +1238,7 @@ OPTIONS
 		     rects the ‘colors’ entry for terminals which support 88
 		     or 256 colours:
 
-			   "*88col*:colors=88,*256col*:colors=256"
+			   "*88col*:colors=88,*256col*:colors=256,xterm*:XT"
 
 	     update-environment variables
 		     Set a space-separated string containing a list of envi-
@@ -1218,9 +1291,12 @@ OPTIONS
 	     alternate-screen [on | off]
 		     This option configures whether programs running inside
 		     tmux may use the terminal alternate screen feature, which
-		     allows the smcup and rmcup terminfo(5) capabilities to be
-		     issued to preserve the existing window content on start
-		     and restore it on exit.
+		     allows the smcup and rmcup terminfo(5) capabilities.  The
+		     alternate screen feature preserves the contents of the
+		     window when an interactive application starts and
+		     restores it on exit, so that any output visible before
+		     the application starts reappears unchanged after it
+		     exits.  The default is on.
 
 	     automatic-rename [on | off]
 		     Control automatic window renaming.	 When this setting is
@@ -1266,8 +1342,9 @@ OPTIONS
 
 	     mode-mouse [on | off]
 		     Mouse state in modes.  If on, the mouse may be used to
-		     copy a selection by dragging in copy mode, or to select
-		     an option in choice mode.
+		     enter copy mode and copy a selection by dragging, to
+		     enter copy mode and scroll with the mouse wheel, or to
+		     select an option in choice mode.
 
 	     monitor-activity [on | off]
 		     Monitor for activity in the window.  Windows with activ-
@@ -1446,37 +1523,51 @@ STATUS LINE
 
      Commands related to the status line are as follows:
 
-     command-prompt [-p prompts] [-t target-client] [template]
+     command-prompt [-I inputs] [-p prompts] [-t target-client] [template]
 	     Open the command prompt in a client.  This may be used from
-	     inside tmux to execute commands interactively.  If template is
-	     specified, it is used as the command.  If -p is given, prompts is
-	     a comma-separated list of prompts which are displayed in order;
-	     otherwise a single prompt is displayed, constructed from template
-	     if it is present, or ‘:’ if not.  Before the command is executed,
-	     the first occurrence of the string ‘%%’ and all occurrences of
-	     ‘%1’ are replaced by the response to the first prompt, the second
-	     ‘%%’ and all ‘%2’ are replaced with the response to the second
-	     prompt, and so on for further prompts.  Up to nine prompt
-	     responses may be replaced (‘%1’ to ‘%9’).
+	     inside tmux to execute commands interactively.
 
-     confirm-before [-t target-client] command
+	     If template is specified, it is used as the command.  If present,
+	     -I is a comma-separated list of the initial text for each prompt.
+	     If -p is given, prompts is a comma-separated list of prompts
+	     which are displayed in order; otherwise a single prompt is dis-
+	     played, constructed from template if it is present, or ‘:’ if
+	     not.
+
+	     Both inputs and prompts may contain the special character
+	     sequences supported by the status-left option.
+
+	     Before the command is executed, the first occurrence of the
+	     string ‘%%’ and all occurrences of ‘%1’ are replaced by the
+	     response to the first prompt, the second ‘%%’ and all ‘%2’ are
+	     replaced with the response to the second prompt, and so on for
+	     further prompts.  Up to nine prompt responses may be replaced
+	     (‘%1’ to ‘%9’).
+
+     confirm-before [-p prompt] [-t target-client] command
 		   (alias: confirm)
-	     Ask for confirmation before executing command.  This command
-	     works only from inside tmux.
+	     Ask for confirmation before executing command.  If -p is given,
+	     prompt is the prompt to display; otherwise a prompt is con-
+	     structed from command.  It may contain the special character
+	     sequences supported by the status-left option.
 
-     display-message [-p] [-t target-client] [message]
+	     This command works only from inside tmux.
+
+     display-message [-p] [-c target-client] [-t target-pane] [message]
 		   (alias: display)
 	     Display a message.	 If -p is given, the output is printed to std-
 	     out, otherwise it is displayed in the target-client status line.
 	     The format of message is as for status-left, with the exception
-	     that #() are not handled.
+	     that #() are not handled; information is taken from target-pane
+	     if -t is given, otherwise the active pane for the session
+	     attached to target-client.
 
 BUFFERS
-     tmux maintains a stack of paste buffers for each session.	Up to the
-     value of the buffer-limit option are kept; when a new buffer is added,
-     the buffer at the bottom of the stack is removed.	Buffers may be added
-     using copy-mode or the set-buffer command, and pasted into a window using
-     the paste-buffer command.
+     tmux maintains a stack of paste buffers.  Up to the value of the
+     buffer-limit option are kept; when a new buffer is added, the buffer at
+     the bottom of the stack is removed.  Buffers may be added using copy-mode
+     or the set-buffer command, and pasted into a window using the
+     paste-buffer command.
 
      A configurable history buffer is also maintained for each window.	By
      default, up to 2000 lines are kept; this can be altered with the
@@ -1495,22 +1586,16 @@ BUFFERS
 		   (alias: clearhist)
 	     Remove and free the history for the specified pane.
 
-     copy-buffer [-a src-index] [-b dst-index] [-s src-session] [-t
-	     dst-session]
-		   (alias: copyb)
-	     Copy a session paste buffer to another session.  If no sessions
-	     are specified, the current one is used instead.
-
-     delete-buffer [-b buffer-index] [-t target-session]
+     delete-buffer [-b buffer-index]
 		   (alias: deleteb)
 	     Delete the buffer at buffer-index, or the top buffer if not spec-
 	     ified.
 
-     list-buffers [-t target-session]
+     list-buffers
 		   (alias: lsb)
-	     List the buffers in the given session.
+	     List the global buffers.
 
-     load-buffer [-b buffer-index] [-t target-session] path
+     load-buffer [-b buffer-index] path
 		   (alias: loadb)
 	     Load the contents of the specified paste buffer from path.
 
@@ -1524,16 +1609,16 @@ BUFFERS
 	     be specified using the -s flag.  The -r flag means to do no
 	     replacement (equivalent to a separator of LF).
 
-     save-buffer [-a] [-b buffer-index] [-t target-session] path
+     save-buffer [-a] [-b buffer-index] path
 		   (alias: saveb)
 	     Save the contents of the specified paste buffer to path.  The -a
 	     option appends to rather than overwriting the file.
 
-     set-buffer [-b buffer-index] [-t target-session] data
+     set-buffer [-b buffer-index] data
 		   (alias: setb)
 	     Set the contents of the specified buffer to data.
 
-     show-buffer [-b buffer-index] [-t target-session]
+     show-buffer [-b buffer-index]
 		   (alias: showb)
 	     Display the contents of the specified buffer.
 
@@ -1562,6 +1647,29 @@ MISCELLANEOUS
      server-info
 		   (alias: info)
 	     Show server information and terminal details.
+
+TERMINFO EXTENSIONS
+     tmux understands some extensions to terminfo(5):
+
+     Cc, Cr  Set the cursor colour.  The first takes a single string argument
+	     and is used to set the colour; the second takes no arguments and
+	     restores the default cursor colour.  If set, a sequence such as
+	     this may be used to change the cursor colour from inside tmux:
+
+		   $ printf ’\033]12;red\033\\’
+
+     Cs, Csr
+	     Change the cursor style.  If set, a sequence such as this may be
+	     used to change the cursor to an underline:
+
+		   $ printf ’\033[4 q’
+
+	     If Csr is set, it will be used to reset the cursor style instead
+	     of Cs.
+
+     Ms	     This sequence can be used by tmux to store the current buffer in
+	     the host terminal’s selection (clipboard).	 See the set-clipboard
+	     option above and the xterm(1) man page.
 
 FILES
      ~/.tmux.conf	Default tmux configuration file.
