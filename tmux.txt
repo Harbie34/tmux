@@ -407,7 +407,7 @@ CLIENTS AND SESSIONS
 	     -F flag, see the FORMATS section.	If target-session is speci-
 	     fied, list only clients connected to that session.
 
-     list-commands
+     list-commands [-F format]
 		   (alias: lscm)
 	     List the syntax of all commands supported by tmux.
 
@@ -477,9 +477,10 @@ CLIENTS AND SESSIONS
 	     option.  With -t, display the log for target-client.  -J and -T
 	     show debugging information about jobs and terminals.
 
-     source-file path
+     source-file [-q] path
 		   (alias: source)
-	     Execute commands from path.
+	     Execute commands from path.  If -q is given, no error will be
+	     returned if path does not exist.
 
      start-server
 		   (alias: start)
@@ -510,7 +511,7 @@ CLIENTS AND SESSIONS
 		   bind-key -Troot   a switch-client -Ttable1
 
 WINDOWS AND PANES
-     A tmux window may be in one of several modes.  The default permits direct
+     A tmux window may be in one of two modes.	The default permits direct
      access to the terminal attached to the window.  The other is copy mode,
      which permits a section of a window or its history to be copied to a
      paste buffer for later insertion into another window.  This mode is
@@ -549,6 +550,7 @@ WINDOWS AND PANES
 	   Jump to backward		T
 	   Jump to forward		t
 	   Next page			C-f		Page down
+	   Next paragraph		}		M-}
 	   Next space			W
 	   Next space, end of word	E
 	   Next word			w
@@ -556,6 +558,7 @@ WINDOWS AND PANES
 	   Other end of selection	o
 	   Paste buffer			p		C-y
 	   Previous page		C-b		Page up
+	   Previous paragraph		{		M-{
 	   Previous space		B
 	   Previous word		b		M-b
 	   Quit mode			q		Escape
@@ -761,12 +764,15 @@ WINDOWS AND PANES
 	     see the FORMATS section.  This command works only if at least one
 	     client is attached.
 
-     display-panes [-t target-client]
+     display-panes [-t target-client] [template]
 		   (alias: displayp)
 	     Display a visible indicator of each pane shown by target-client.
 	     See the display-panes-time, display-panes-colour, and
 	     display-panes-active-colour session options.  While the indicator
-	     is on screen, a pane may be selected with the ‘0’ to ‘9’ keys.
+	     is on screen, a pane may be chosen with the ‘0’ to ‘9’ keys,
+	     which will cause template to be executed as a command with ‘%%’
+	     substituted by the pane ID.  The default template is "select-pane
+	     -t ’%%’".
 
      find-window [-CNT] [-F format] [-t target-window] match-string
 		   (alias: findw)
@@ -991,9 +997,11 @@ WINDOWS AND PANES
 	     assumed.  The -l and -p options specify the size of the new pane
 	     in lines (for vertical split) or in cells (for horizontal split),
 	     or as a percentage, respectively.	The -b option causes the new
-	     pane to be created to the left of or above target-pane.  All
-	     other options have the same meaning as for the new-window com-
-	     mand.
+	     pane to be created to the left of or above target-pane.  The -f
+	     option creates a new pane spanning the full window height (with
+	     -h) or full window width (with -v), instead of splitting the
+	     active pane.  All other options have the same meaning as for the
+	     new-window command.
 
      swap-pane [-dDU] [-s src-pane] [-t dst-pane]
 		   (alias: swapp)
@@ -1037,7 +1045,8 @@ KEY BINDINGS
 
      Commands related to key bindings are as follows:
 
-     bind-key [-cnr] [-t mode-table] [-T key-table] key command [arguments]
+     bind-key [-cnr] [-R repeat-count] [-t mode-table] [-T key-table] key
+	     command [arguments]
 		   (alias: bind)
 	     Bind key key to command.  Keys are bound in a key table.  By
 	     default (without -T), the key is bound in the prefix key table.
@@ -1052,9 +1061,12 @@ KEY BINDINGS
 	     indicates this key may repeat, see the repeat-time option.
 
 	     If -t is present, key is bound in mode-table: the binding for
-	     command mode with -c or for normal mode without.  See the WINDOWS
-	     AND PANES section and the list-keys command for information on
-	     mode key bindings.
+	     command mode with -c or for normal mode without.  For keys in the
+	     vi-copy or emacs-copy tables, -R specifies how many times the
+	     command should be repeated.
+
+	     See the WINDOWS AND PANES section and the list-keys command for
+	     information on mode key bindings.
 
 	     To view the default bindings and possible commands, see the
 	     list-keys command.
@@ -1411,16 +1423,14 @@ OPTIONS
 		     Display string (by default the session name) to the left
 		     of the status bar.	 string will be passed through
 		     strftime(3) and formats (see FORMATS) will be expanded.
-		     It may also contain any of the following special charac-
-		     ter sequences:
-
-			   Character pair    Replaced with
-			   #[attributes]     Colour or attribute change
-			   ##		     A literal ‘#’
+		     It may also contain the special character sequence #[] to
+		     change the colour or attributes, for example
+		     ‘#[fg=red,bright]’ to set a bright red foreground.	 See
+		     the message-command-style option for a description of
+		     colours and attributes.
 
 		     For details on how the names and titles can be set see
-		     the NAMES AND TITLES section.  For a list of allowed
-		     attributes see the message-command-style option.
+		     the NAMES AND TITLES section.
 
 		     Examples are:
 
@@ -1597,6 +1607,12 @@ OPTIONS
 		     Like base-index, but set the starting index for pane num-
 		     bers.
 
+	     pane-border-format format
+		     Set the text shown in pane border status lines.
+
+	     pane-border-status [off | top | bottom]
+		     Turn pane border status lines off or set their position.
+
 	     pane-border-style style
 		     Set the pane border style for panes aside from the active
 		     pane.  For how to specify style, see the
@@ -1684,8 +1700,23 @@ OPTIONS
 	     option value, not the name.
 
 HOOKS
-     tmux allows commands to run on various triggers, called hooks.  Each hook
-     has a name.  The following hooks are available:
+     tmux allows commands to run on various triggers, called hooks.  Each tmux
+     command has a before hook and an after hook and there are a number of
+     hooks not associated with commands.
+
+     A command’s before hook is run before the command is executed and its
+     after hook is run afterwards, except when the command is run as part of a
+     hook itself.  Before hooks are named using the ‘before-’ prefix and after
+     hooks the ‘after-’ prefix.	 For example, the following command adds a
+     hook to select the even-vertical layout after every split-window:
+
+	   set-hook after-split-window "selectl even-vertical"
+
+     Or to write when each new window is created to a file:
+
+	   set-hook before-new-window ’run "date >>/tmp/log"’
+
+     In addition, the following hooks are available:
 
      alert-activity    Run when a window has activity.	See monitor-activity.
 
@@ -1785,6 +1816,7 @@ FORMATS
      alternate_on		     If pane is in alternate screen
      alternate_saved_x		     Saved cursor X in alternate screen
      alternate_saved_y		     Saved cursor Y in alternate screen
+     buffer_name		     Name of buffer
      buffer_sample		     Sample of start of buffer
      buffer_size		     Size of the specified buffer in bytes
      client_activity		     Integer time client last had activity
@@ -1801,7 +1833,11 @@ FORMATS
      client_tty			     Pseudo terminal of client
      client_utf8		     1 if client supports utf8
      client_width		     Width of client
+     command_hooked		     Name of command hooked, if any
      command_name		     Name of command in use, if any
+     command_list_name		     Command name if listing commands
+     command_list_alias		     Command alias if listing commands
+     command_list_usage		     Command usage if listing commands
      cursor_flag		     Pane cursor flag
      cursor_x			     Cursor X position in pane
      cursor_y			     Cursor Y position in pane
@@ -1855,9 +1891,10 @@ FORMATS
      session_name	    #S	     Name of session
      session_width		     Width of session
      session_windows		     Number of windows in session
-     socket_path	     Server socket path
+     socket_path		     Server socket path
      start_time			     Server start time
      window_activity		     Integer time of window last activity
+     window_activity_flag	     1 if window has activity
      window_active		     1 if window active
      window_bell_flag		     1 if window has bell
      window_find_matches	     Matched data from the find-window
@@ -1995,10 +2032,9 @@ STATUS LINE
 
 	     Before the command is executed, the first occurrence of the
 	     string ‘%%’ and all occurrences of ‘%1’ are replaced by the
-	     response to the first prompt, the second ‘%%’ and all ‘%2’ are
-	     replaced with the response to the second prompt, and so on for
-	     further prompts.  Up to nine prompt responses may be replaced
-	     (‘%1’ to ‘%9’).
+	     response to the first prompt, all ‘%2’ are replaced with the
+	     response to the second prompt, and so on for further prompts.  Up
+	     to nine prompt responses may be replaced (‘%1’ to ‘%9’).
 
      confirm-before [-p prompt] [-t target-client] command
 		   (alias: confirm)
@@ -2024,8 +2060,8 @@ BUFFERS
      an automatically named buffer with set-buffer -n.	Automatically named
      buffers are given a name such as ‘buffer0001’, ‘buffer0002’ and so on.
      When the buffer-limit option is reached, the oldest automatically named
-     buffer is deleted.	 Explicitly named are not subject to buffer-limit and
-     may be deleted with delete-buffer command.
+     buffer is deleted.	 Explicitly named buffers are not subject to
+     buffer-limit and may be deleted with delete-buffer command.
 
      Buffers may be added using copy-mode or the set-buffer and load-buffer
      commands, and pasted into a window using the paste-buffer command.	 If a
