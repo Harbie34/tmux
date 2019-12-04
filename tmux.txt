@@ -4,8 +4,8 @@ NAME
      tmux - terminal multiplexer
 
 SYNOPSIS
-     tmux [-28dlqUuv] [-f file] [-L socket-name] [-S socket-path]
-	  [command [flags]]
+     tmux [-28lquv] [-c shell-command] [-f file] [-L socket-name]
+	  [-S socket-path] [command [flags]]
 
 DESCRIPTION
      tmux is a terminal multiplexer: it enables a number of terminals to be
@@ -43,7 +43,10 @@ DESCRIPTION
      -8		   Like -2, but indicates that the terminal supports 88
 		   colours.
 
-     -d		   Force tmux to assume the terminal supports default colours.
+     -c shell-command
+		   Execute shell-command using the default shell.  If neces-
+		   sary, the tmux server will be started to retrieve the
+		   default-shell option.
 
      -f file	   Specify an alternative configuration file.  By default,
 		   tmux loads the system configuration file from
@@ -78,8 +81,6 @@ DESCRIPTION
 		   Specify a full alternative path to the server socket.  If
 		   -S is specified, the default socket directory is not used
 		   and any -L flag is ignored.
-
-     -U		   Unlock the server.
 
      -u		   tmux attempts to guess if the terminal is likely to support
 		   UTF-8 by checking the first of the LC_ALL, LC_CTYPE and
@@ -141,7 +142,7 @@ COMMANDS
      tern.  If a single match is found, it is used as the target session; mul-
      tiple matches produce an error.  If a session is omitted, the current
      session is used if available; if no current session is available, the
-     most recently created is chosen.
+     most recently used is chosen.
 
      target-window specifies a window in the form session:window.  session
      follows the same rules as for target-session, and window is looked for in
@@ -176,8 +177,6 @@ COMMANDS
 	   set-window-option -t:0 monitor-activity on
 
 	   new-window ; split-window -d
-
-	   bind-key D detach-client \; lock-server
 
 CLIENTS AND SESSIONS
      The following commands are available:
@@ -222,7 +221,14 @@ CLIENTS AND SESSIONS
 		   (alias: ls)
 	     List all sessions managed by the server.
 
-     new-session [-d] [-n window-name] [-s session-name] [command]
+     lock-client [-t target-client]
+	     Lock target-client, see the lock-server command.
+
+     lock-session [-t target-session]
+	     Lock all clients attached to target-session.
+
+     new-session [-d] [-n window-name] [-s session-name] [-t target-session]
+	     [command]
 		   (alias: new)
 	     Create a new session with name session-name.  The new session is
 	     attached to the current terminal unless -d is given.  window-name
@@ -231,6 +237,14 @@ CLIENTS AND SESSIONS
 
 	     If run from a terminal, any termios(4) special characters are
 	     saved and used for new windows in the new session.
+
+	     If -t is given, the new session is grouped with target-session.
+	     This means they share the same set of windows - all windows from
+	     target-session are linked to the new session and any subsequent
+	     new windows or windows being closed are applied to both sessions.
+	     The current and previous window and any session options remain
+	     independent and either session may be killed without affecting
+	     the other.	 Giving -n or command are invalid if -t is used.
 
      refresh-client [-t target-client]
 		   (alias: refresh)
@@ -267,51 +281,54 @@ WINDOWS AND PANES
 	     This is entered when a command which produces output, such as
 	     list-keys, is executed from a key binding.
 
-     scroll mode
-	     This is entered with the scroll-mode command (bound to ‘=’ by
-	     default) and permits the window history buffer to be inspected.
-
      copy mode
 	     This permits a section of a window or its history to be copied to
 	     a paste buffer for later insertion into another window.  This
-	     mode is entered with the copy-mode command, bound to [‘’ by
+	     mode is entered with the copy-mode command, bound to ‘[’ by
 	     default.
 
      The keys available depend on whether emacs or vi mode is selected (see
      the mode-keys option).  The following keys are supported as appropriate
      for the mode:
 
-	   Function		   vi	       emacs
-	   Back to indentation	   ^	       M-m
-	   Clear selection	   Escape      C-g
-	   Copy selection	   Enter       M-w
-	   Cursor down		   j	       Down
-	   Cursor left		   h	       Left
-	   Cursor right		   l	       Right
-	   Cursor up		   k	       Up
-	   Delete entire line	   d	       C-u
-	   Delete to end of line   D	       C-k
-	   End of line		   $	       C-e
-	   Goto line		   g	       g
-	   Next page		   C-f	       Page down
-	   Next word		   w	       M-f
-	   Paste buffer		   p	       C-y
-	   Previous page	   C-u	       Page up
-	   Previous word	   b	       M-b
-	   Quit mode		   q	       Escape
-	   Search again		   n	       n
-	   Search backward	   ?	       C-r
-	   Search forward	   /	       C-s
-	   Start of line	   0	       C-a
-	   Start selection	   Space       C-Space
-	   Transpose chars		       C-t
+	   Function		   vi		  emacs
+	   Back to indentation	   ^		  M-m
+	   Clear selection	   Escape	  C-g
+	   Copy selection	   Enter	  M-w
+	   Cursor down		   j		  Down
+	   Cursor left		   h		  Left
+	   Cursor right		   l		  Right
+	   Cursor to bottom line   L
+	   Cursor to middle line   M		  M-r
+	   Cursor to top line	   H		  M-R
+	   Cursor up		   k		  Up
+	   Delete entire line	   d		  C-u
+	   Delete to end of line   D		  C-k
+	   End of line		   $		  C-e
+	   Goto line		   :		  g
+	   Half page down	   C-d		  M-Down
+	   Half page up		   C-u		  M-Up
+	   Next page		   C-f		  Page down
+	   Next word		   w		  M-f
+	   Paste buffer		   p		  C-y
+	   Previous page	   C-b		  Page up
+	   Previous word	   b		  M-b
+	   Quit mode		   q		  Escape
+	   Scroll down		   C-Down or J	  C-Down
+	   Scroll up		   C-Up or K	  C-Up
+	   Search again		   n		  n
+	   Search backward	   ?		  C-r
+	   Search forward	   /		  C-s
+	   Start of line	   0		  C-a
+	   Start selection	   Space	  C-Space
+	   Transpose chars			  C-t
 
      These key bindings are defined in a set of named tables: vi-edit and
      emacs-edit for keys used when line editing at the command prompt;
      vi-choice and emacs-choice for keys used when choosing from lists (such
      as produced by the window-choose command) or in output mode; and vi-copy
-     and emacs-copy used in copy and scroll modes.  The tables may be viewed
-     with the list-keys command and keys modified or removed with bind-key and
+     and emacs-copy used in copy mode.	The tables may be viewed with the
+     list-keys command and keys modified or removed with bind-key and
      unbind-key.
 
      The paste buffer key pastes the first line from the top paste buffer on
@@ -321,10 +338,6 @@ WINDOWS AND PANES
 
      copy-mode [-u] [-t target-pane]
 	     Enter copy mode.  The -u option scrolls one page up.
-
-     scroll-mode [-u] [-t target-pane]
-	     Enter scroll mode.	 The -u has the same meaning as in the
-	     copy-mode command.
 
      Each window displayed by tmux may be split into one or more panes; each
      pane takes up a certain area of the display and is a separate terminal.
@@ -400,7 +413,7 @@ WINDOWS AND PANES
 
      down-pane [-t target-pane]
 		   (alias: downp)
-	     Move down a pane.
+	     Change the active pane to the next pane (higher index).
 
      find-window [-t target-window] match-string
 		   (alias: findw)
@@ -409,10 +422,11 @@ WINDOWS AND PANES
 	     dow is matched, it’ll be automatically selected, otherwise a
 	     choice list is shown.  This command only works from inside tmux.
 
-     kill-pane [-t target-pane]
+     kill-pane [-a] [-t target-pane]
 		   (alias: killp)
 	     Destroy the given pane.  If no panes remain in the containing
-	     window, it is also destroyed.
+	     window, it is also destroyed.  The -a option kills all but the
+	     pane given with -t.
 
      kill-window [-t target-window]
 		   (alias: killw)
@@ -432,6 +446,10 @@ WINDOWS AND PANES
 	     is linked there.  If -k is given and dst-window exists, it is
 	     killed, otherwise an error is generated.  If -d is given, the
 	     newly linked window is not selected.
+
+     list-panes [-t target-window]
+		   (alias: lsp)
+	     List the panes in the current window or in target-window.
 
      list-windows [-t target-session]
 		   (alias: lsw)
@@ -464,6 +482,18 @@ WINDOWS AND PANES
 		   (alias: next)
 	     Move to the next window in the session.  If -a is used, move to
 	     the next window with a bell, activity or content alert.
+
+     pipe-pane [-o] [-t target-pane] [command]
+		   (alias: pipep)
+	     Pipe any output sent by the program in target-pane to a shell
+	     command.  A pane may only be piped to one command at a time, any
+	     existing pipe is closed before command is executed.  If no
+	     command is given, the current pipe (if any) is closed.
+
+	     The -o option only opens a new pipe if no previous pipe exists,
+	     allowing a pipe to be toggled with a single key, for example:
+
+		   bind-key C-p pipe-pane -o ’cat >>~/output’
 
      previous-window [-a] [-t target-session]
 		   (alias: prev)
@@ -538,21 +568,29 @@ WINDOWS AND PANES
 
      up-pane [-t target-pane]
 		   (alias: upp)
-	     Move up a pane.
+	     Change the active pane to the previous pane (lower index).
 
 KEY BINDINGS
+     tmux allows a command to be bound to most keys, with or without a prefix
+     key.  When specifying keys, most represent themselves (for example ‘A’ to
+     ‘Z’).  Ctrl keys may be prefixed with ‘C-’ or ‘^’, and Alt (meta) with
+     ‘M-’.  In addition, the following special key names are accepted: BSpace,
+     BTab, DC (Delete), End, Enter, Escape, F1 to F20, Home, IC (Insert),
+     NPage (Page Up), PPage (Page Down), Space, and Tab.  Note that to bind
+     the ‘"’ or ‘’’ keys, quotation marks are necessary, for example:
+
+	   bind-key ’"’ split-window
+	   bind-key "’" select-prompt
+
      Commands related to key bindings are as follows:
 
      bind-key [-cnr] [-t key-table] key command [arguments]
 		   (alias: bind)
-	     Bind key key to command.  Keys may be specified prefixed with
-	     ‘C-’ or ‘^’ for Ctrl keys, or ‘M-’ for Alt (meta) keys.
-
-	     By default (without -t) the primary key bindings are modified
-	     (those normally activated with the prefix key); in this case, if
-	     -n is specified, it is not necessary to use the prefix key,
-	     command is bound to key alone.  The -r flag indicates this key
-	     may repeat, see the repeat-time option.
+	     Bind key key to command.  By default (without -t) the primary key
+	     bindings are modified (those normally activated with the prefix
+	     key); in this case, if -n is specified, it is not necessary to
+	     use the prefix key, command is bound to key alone.	 The -r flag
+	     indicates this key may repeat, see the repeat-time option.
 
 	     If -t is present, key is bound in key-table: the binding for com-
 	     mand mode with -c or for normal mode without.  To view the
@@ -578,7 +616,8 @@ KEY BINDINGS
 	     arguments are sent sequentially from first to last.
 
      send-prefix [-t target-pane]
-	     Send the prefix key to a window as if it was pressed.
+	     Send the prefix key to a window as if it was pressed.  If multi-
+	     ple prefix keys are configured, only the first is sent.
 
      unbind-key [-cn] [-t key-table] key
 		   (alias: unbind)
@@ -685,12 +724,21 @@ OPTIONS
 		     point they were created.
 
 	     lock-after-time number
-		     Lock the server after number seconds of inactivity.  The
-		     default is off (set to 0).	 This has no effect as a ses-
-		     sion option; it must be set as a global option using -g.
-		     When passwords are entered incorrectly, tmux follows the
-		     behaviour of login(1) and ignores further password
-		     attempts for an increasing timeout.
+		     Lock the session (like the lock-session command) after
+		     number seconds of inactivity, or the entire server (all
+		     sessions) if the lock-server option is set.  The default
+		     is not to lock (set to 0).
+
+	     lock-command command
+		     Command to run when locking each client.  The default is
+		     to run lock(1) with -np.
+
+	     lock-server [on | off]
+		     If this option is on (the default), instead of each ses-
+		     sion locking individually as each has been idle for
+		     lock-after-time, the entire server will lock after all
+		     sessions would have locked.  This has no effect as a ses-
+		     sion option; it must be set as a global option.
 
 	     message-attr attributes
 		     Set status line message attributes, where attributes is
@@ -707,8 +755,16 @@ OPTIONS
 	     message-fg colour
 		     Set status line message foreground colour.
 
-	     prefix key
-		     Set the current prefix key.
+	     mouse-select-pane [on | off]
+		     If on, tmux captures the mouse and when a window is split
+		     into multiple panes the mouse may be used to select the
+		     current pane.  The mouse click is also passed through to
+		     the application as normal.
+
+	     prefix keys
+		     Set the keys accepted as a prefix key.  keys is a comma-
+		     separated list of key names, each of which individually
+		     behave as the prefix key.
 
 	     repeat-time time
 		     Allow multiple commands to be entered without pressing
@@ -777,18 +833,26 @@ OPTIONS
 			   ##		     A literal ‘#’
 
 		     The #(command) form executes ‘command’ as a shell command
-		     and inserts the first line of its output.	#[attributes]
-		     allows a comma-separated list of attributes to be speci-
-		     fied, these may be ‘fg=colour’ to set the foreground
-		     colour, ‘bg=colour’ to set the background colour, or one
-		     of the attributes described under the message-attr
-		     option.  Examples are:
+		     and inserts the first line of its output.	Note that
+		     shell commands are only executed once at the interval
+		     specified by the status-interval option: if the status
+		     line is redrawn in the meantime, the previous result is
+		     used.
+
+		     #[attributes] allows a comma-separated list of attributes
+		     to be specified, these may be ‘fg=colour’ to set the
+		     foreground colour, ‘bg=colour’ to set the background
+		     colour, the name of one of the attributes (listed under
+		     the message-attr option) to turn an attribute on, or an
+		     attribute prefixed with ‘no’ to turn one off, for example
+		     nobright.	Examples are:
 
 			   #(sysctl vm.loadavg)
 			   #[fg=yellow,bold]#(apm -l)%%#[default] [#S]
 
-		     Where appropriate, these may be prefixed with a number to
-		     specify the maximum length, for example ‘#24T’.
+		     Where appropriate, special character sequences may be
+		     prefixed with a number to specify the maximum length, for
+		     example ‘#24T’.
 
 		     By default, UTF-8 in string is not interpreted, to enable
 		     UTF-8, use the status-utf8 option.
@@ -938,8 +1002,8 @@ OPTIONS
 		     Set window modes foreground colour.
 
 	     mode-keys [vi | emacs]
-		     Use vi or emacs-style key bindings in scroll, copy and
-		     choice modes.  Key bindings default to emacs.
+		     Use vi or emacs-style key bindings in copy and choice
+		     modes.  Key bindings default to emacs.
 
 	     mode-mouse [on | off]
 		     Mouse state in modes.  If on, tmux will respond to mouse
@@ -960,6 +1024,10 @@ OPTIONS
 		     program running in it exits.  The window may be reacti-
 		     vated with the respawn-window command.
 
+	     synchronize-panes [on | off]
+		     Duplicate input to any pane to all other panes in the
+		     same window, except for panes that are not in output
+		     mode.
 	     utf8 [on | off]
 		     Instructs tmux to expect UTF-8 sequences to appear in
 		     this window.
@@ -1016,6 +1084,7 @@ ENVIRONMENT
      Commands to alter and view the environment are:
 
      set-environment [-gru] [-t target-session] name [value]
+		   (alias: setenv)
 	     Set or unset an environment variable.  If -g is used, the change
 	     is made in the global environment; otherwise, it is applied to
 	     the session environment for target-session.  The -u flag unsets a
@@ -1023,6 +1092,7 @@ ENVIRONMENT
 	     environment before starting a new process.
 
      show-environment [-g] [-t target-session]
+		   (alias: showenv)
 	     Display the environment for target-session or the global environ-
 	     ment with -g.  Variables removed from the environment are pre-
 	     fixed with ‘-’.
@@ -1159,20 +1229,19 @@ MISCELLANEOUS
 
      lock-server
 		   (alias: lock)
-	     Lock the server until a password is entered.
+	     Lock each client individually by running the command specified by
+	     the lock-command option.
+
+     run-shell command
+		   (alias: run)
+	     Execute command in the background without creating a window.
+	     After the command finishes, any output to stdout is displayed in
+	     output mode.  If command doesn’t return success, the exit status
+	     is also displayed.
 
      server-info
 		   (alias: info)
 	     Show server information and terminal details.
-
-     set-password [-c] password
-		   (alias: pass)
-	     Set the server password.  If the -c option is given, a pre-
-	     encrypted password may be specified.  By default, the password is
-	     blank, thus any entered password will be accepted when unlocking
-	     the server (see the lock-server command).	To prevent variable
-	     expansion when an encrypted password is read from a configuration
-	     file, enclose it in single quotes (’).
 
 FILES
      ~/.tmux.conf	Default tmux configuration file.
