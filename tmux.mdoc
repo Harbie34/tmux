@@ -248,9 +248,10 @@ CCOOMMMMAANNDDSS
 
      Multiple commands may be specified together as part of a _c_o_m_m_a_n_d
      _s_e_q_u_e_n_c_e.  Each command should be separated by spaces and a semicolon;
-     commands are executed sequentially from left to right.  A literal semi-
-     colon may be included by escaping it with a backslash (for example, when
-     specifying a command sequence to bbiinndd--kkeeyy).
+     commands are executed sequentially from left to right and lines ending
+     with a backslash continue on to the next line.  A literal semicolon may
+     be included by escaping it with a backslash (for example, when specifying
+     a command sequence to bbiinndd--kkeeyy).
 
      Example ttmmuuxx commands include:
 
@@ -261,6 +262,9 @@ CCOOMMMMAANNDDSS
            set-window-option -t:0 monitor-activity on
 
            new-window ; split-window -d
+
+           bind-key R source-file ~/.tmux.conf \; \
+                   display-message "source-file done"
 
      Or from sh(1):
 
@@ -288,8 +292,8 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              minal and attach it to _t_a_r_g_e_t_-_s_e_s_s_i_o_n.  If used from inside,
              switch the current client.  If --dd is specified, any other clients
              attached to the session are detached.  --rr signifies the client is
-             read-only (only keys bound to the ddeettaacchh--cclliieenntt command have any
-             effect)
+             read-only (only keys bound to the ddeettaacchh--cclliieenntt or sswwiittcchh--cclliieenntt
+             commands have any effect)
 
              If no server is started, aattttaacchh--sseessssiioonn will attempt to start it;
              this will fail unless sessions are created in the configuration
@@ -302,9 +306,9 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
      ddeettaacchh--cclliieenntt [--PP] [--ss _t_a_r_g_e_t_-_s_e_s_s_i_o_n] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
                    (alias: ddeettaacchh)
              Detach the current client if bound to a key, the client specified
-             with --tt, or all clients currently attached to to the session
-             specified by --ss.  If --PP is given, send SIGHUP to the parent pro-
-             cess of the client, typically causing it to exit.
+             with --tt, or all clients currently attached to the session speci-
+             fied by --ss.  If --PP is given, send SIGHUP to the parent process of
+             the client, typically causing it to exit.
 
      hhaass--sseessssiioonn [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: hhaass)
@@ -318,18 +322,20 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              Destroy the given session, closing any windows linked to it and
              no other sessions, and detaching all clients attached to it.
 
-     lliisstt--cclliieennttss [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+     lliisstt--cclliieennttss [--FF _f_o_r_m_a_t] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: llsscc)
-             List all clients attached to the server.  If _t_a_r_g_e_t_-_s_e_s_s_i_o_n is
-             specified, list only clients connected to that session.
+             List all clients attached to the server.  For the meaning of the
+             --FF flag, see the _F_O_R_M_A_T_S section.  If _t_a_r_g_e_t_-_s_e_s_s_i_o_n is speci-
+             fied, list only clients connected to that session.
 
      lliisstt--ccoommmmaannddss
                    (alias: llssccmm)
              List the syntax of all commands supported by ttmmuuxx.
 
-     lliisstt--sseessssiioonnss
+     lliisstt--sseessssiioonnss [--FF _f_o_r_m_a_t]
                    (alias: llss)
-             List all sessions managed by the server.
+             List all sessions managed by the server.  For the meaning of the
+             --FF flag, see the _F_O_R_M_A_T_S section.
 
      lloocckk--cclliieenntt [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
                    (alias: lloocckkcc)
@@ -361,10 +367,11 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              independent and either session may be killed without affecting
              the other.  Giving --nn or _s_h_e_l_l_-_c_o_m_m_a_n_d are invalid if --tt is used.
 
-     rreeffrreesshh--cclliieenntt [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
+     rreeffrreesshh--cclliieenntt [--SS] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
                    (alias: rreeffrreesshh)
              Refresh the current client if bound to a key, or a single client
-             if one is given with --tt.
+             if one is given with --tt.  If --SS is specified, only update the
+             client’s status bar.
 
      rreennaammee--sseessssiioonn [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n] _n_e_w_-_n_a_m_e
                    (alias: rreennaammee)
@@ -390,11 +397,12 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
                    (alias: ssuussppeennddcc)
              Suspend a client by sending SIGTSTP (tty stop).
 
-     sswwiittcchh--cclliieenntt [--llnnpp] [--cc _t_a_r_g_e_t_-_c_l_i_e_n_t] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+     sswwiittcchh--cclliieenntt [--llnnpprr] [--cc _t_a_r_g_e_t_-_c_l_i_e_n_t] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: sswwiittcchhcc)
              Switch the current session for client _t_a_r_g_e_t_-_c_l_i_e_n_t to
              _t_a_r_g_e_t_-_s_e_s_s_i_o_n.  If --ll, --nn or --pp is used, the client is moved to
-             the last, next or previous session respectively.
+             the last, next or previous session respectively.  --rr toggles
+             whether a client is read-only (see the aattttaacchh--sseessssiioonn command).
 
 WWIINNDDOOWWSS AANNDD PPAANNEESS
      A ttmmuuxx window may be in one of several modes.  The default permits direct
@@ -428,7 +436,9 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            Half page down               C-d             M-Down
            Half page up                 C-u             M-Up
            Jump forward                 f               f
+           Jump to forward              t
            Jump backward                F               F
+           Jump to backward             T
            Jump again                   ;               ;
            Jump again in reverse        ,               ,
            Next page                    C-f             Page down
@@ -455,7 +465,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
 
      The next and previous word keys use space and the ‘-’, ‘_’ and ‘@’ char-
      acters as word delimiters by default, but this can be adjusted by setting
-     the _w_o_r_d_-_s_e_p_a_r_a_t_o_r_s window option.  Next word moves to the start of the
+     the _w_o_r_d_-_s_e_p_a_r_a_t_o_r_s session option.  Next word moves to the start of the
      next word, next word end to the end of the next word and previous word to
      the start of the previous word.  The three next and previous space keys
      work similarly but use a space alone as the word separator.
@@ -469,6 +479,9 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
      the Alt (meta) key and a number begins prefix entry.  For example, to
      move the cursor forward by ten words, use ‘M-1 0 M-f’ in emacs mode, and
      ‘10w’ in vi.
+
+     When copying the selection, the repeat count indicates the buffer index
+     to replace, if used.
 
      Mode key bindings are defined in a set of named tables: _v_i_-_e_d_i_t and
      _e_m_a_c_s_-_e_d_i_t for keys used when line editing at the command prompt;
@@ -626,17 +639,19 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              killed, otherwise an error is generated.  If --dd is given, the
              newly linked window is not selected.
 
-     lliisstt--ppaanneess [--aass] [--tt _t_a_r_g_e_t]
+     lliisstt--ppaanneess [--aass] [--FF _f_o_r_m_a_t] [--tt _t_a_r_g_e_t]
                    (alias: llsspp)
              If --aa is given, _t_a_r_g_e_t is ignored and all panes on the server are
              listed.  If --ss is given, _t_a_r_g_e_t is a session (or the current ses-
              sion).  If neither is given, _t_a_r_g_e_t is a window (or the current
-             window).
+             window).  For the meaning of the --FF flag, see the _F_O_R_M_A_T_S sec-
+             tion.
 
-     lliisstt--wwiinnddoowwss [--aa] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+     lliisstt--wwiinnddoowwss [--aa] [--FF _f_o_r_m_a_t] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: llssww)
              If --aa is given, list all windows on the server.  Otherwise, list
-             windows in the current session or in _t_a_r_g_e_t_-_s_e_s_s_i_o_n.
+             windows in the current session or in _t_a_r_g_e_t_-_s_e_s_s_i_o_n.  For the
+             meaning of the --FF flag, see the _F_O_R_M_A_T_S section.
 
      mmoovvee--wwiinnddooww [--ddkk] [--ss _s_r_c_-_w_i_n_d_o_w] [--tt _d_s_t_-_w_i_n_d_o_w]
                    (alias: mmoovveeww)
@@ -786,9 +801,9 @@ KKEEYY BBIINNDDIINNGGSS
      ‘Z’).  Ctrl keys may be prefixed with ‘C-’ or ‘^’, and Alt (meta) with
      ‘M-’.  In addition, the following special key names are accepted: _U_p,
      _D_o_w_n, _L_e_f_t, _R_i_g_h_t, _B_S_p_a_c_e, _B_T_a_b, _D_C (Delete), _E_n_d, _E_n_t_e_r, _E_s_c_a_p_e, _F_1 to
-     _F_2_0, _H_o_m_e, _I_C (Insert), _N_P_a_g_e (Page Up), _P_P_a_g_e (Page Down), _S_p_a_c_e, and
-     _T_a_b.  Note that to bind the ‘"’ or ‘’’ keys, quotation marks are neces-
-     sary, for example:
+     _F_2_0, _H_o_m_e, _I_C (Insert), _N_P_a_g_e_/_P_a_g_e_D_o_w_n_/_P_g_D_n, _P_P_a_g_e_/_P_a_g_e_U_p_/_P_g_U_p, _S_p_a_c_e,
+     and _T_a_b.  Note that to bind the ‘"’ or ‘’’ keys, quotation marks are nec-
+     essary, for example:
 
            bind-key ’"’ split-window
            bind-key "’" new-window
@@ -819,16 +834,17 @@ KKEEYY BBIINNDDIINNGGSS
              one of: _v_i_-_e_d_i_t, _e_m_a_c_s_-_e_d_i_t, _v_i_-_c_h_o_i_c_e, _e_m_a_c_s_-_c_h_o_i_c_e, _v_i_-_c_o_p_y or
              _e_m_a_c_s_-_c_o_p_y.
 
-     sseenndd--kkeeyyss [--tt _t_a_r_g_e_t_-_p_a_n_e] _k_e_y _._._.
+     sseenndd--kkeeyyss --RR [--tt _t_a_r_g_e_t_-_p_a_n_e] _k_e_y _._._.
                    (alias: sseenndd)
              Send a key or keys to a window.  Each argument _k_e_y is the name of
              the key (such as ‘C-a’ or ‘npage’ ) to send; if the string is not
              recognised as a key, it is sent as a series of characters.  All
-             arguments are sent sequentially from first to last.
+             arguments are sent sequentially from first to last.  The --RR flag
+             causes the terminal state to be reset.
 
-     sseenndd--pprreeffiixx [--tt _t_a_r_g_e_t_-_p_a_n_e]
-             Send the prefix key to a window as if it was pressed.  If multi-
-             ple prefix keys are configured, only the first is sent.
+     sseenndd--pprreeffiixx [--22] [--tt _t_a_r_g_e_t_-_p_a_n_e]
+             Send the prefix key, or with --22 the secondary prefix key, to a
+             window as if it was pressed.
 
      uunnbbiinndd--kkeeyy [--aaccnn] [--tt _k_e_y_-_t_a_b_l_e] _k_e_y
                    (alias: uunnbbiinndd)
@@ -884,19 +900,6 @@ OOPPTTIIOONNSS
                      the top of the stack, old ones are removed from the bot-
                      tom if necessary to maintain this maximum length.
 
-             sseett--cclliippbbooaarrdd [oonn | ooffff]
-                     Attempt to set the terminal clipboard content using the
-                     \e]52;...\007 xterm(1) escape sequences.  This option is
-                     on by default if there is an _M_s entry in the terminfo(5)
-                     description for the client terminal.  Note that this fea-
-                     ture needs to be enabled in xterm(1) by setting the
-                     resource:
-
-                           disallowedWindowOps: 20,21,SetXprop
-
-                     Or changing this property from the xterm(1) interactive
-                     menu when required.
-
              eessccaappee--ttiimmee _t_i_m_e
                      Set the time in milliseconds for which ttmmuuxx waits after
                      an escape is input to determine if it is part of a func-
@@ -910,6 +913,19 @@ OOPPTTIIOONNSS
              qquuiieett [oonn | ooffff]
                      Enable or disable the display of various informational
                      messages (see also the --qq command line flag).
+
+             sseett--cclliippbbooaarrdd [oonn | ooffff]
+                     Attempt to set the terminal clipboard content using the
+                     \e]52;...\007 xterm(1) escape sequences.  This option is
+                     on by default if there is an _M_s entry in the terminfo(5)
+                     description for the client terminal.  Note that this fea-
+                     ture needs to be enabled in xterm(1) by setting the
+                     resource:
+
+                           disallowedWindowOps: 20,21,SetXprop
+
+                     Or changing this property from the xterm(1) interactive
+                     menu when required.
 
              Available session options are:
 
@@ -937,11 +953,14 @@ OOPPTTIIOONNSS
                      value of the ddeeffaauulltt--sshheellll option.
 
              ddeeffaauulltt--ppaatthh _p_a_t_h
-                     Set the default working directory for processes created
-                     from keys, or interactively from the prompt.  The default
-                     is empty, which means to use the working directory of the
-                     shell from which the server was started if it is avail-
-                     able or the user’s home if not.
+                     Set the default working directory for new panes.  If
+                     empty (the default), the working directory is determined
+                     from the process running in the active pane, from the
+                     command line environment or from the working directory
+                     where the session was created.  If _p_a_t_h is "$HOME" or
+                     "~", the value of the HOME environment variable is used.
+                     If _p_a_t_h is ".", the working directory when ttmmuuxx was
+                     started is used.
 
              ddeeffaauulltt--sshheellll _p_a_t_h
                      Specify the default shell.  This is used as the login
@@ -1018,10 +1037,22 @@ OOPPTTIIOONNSS
              mmeessssaaggee--bbgg _c_o_l_o_u_r
                      Set status line message background colour, where _c_o_l_o_u_r
                      is one of: bbllaacckk, rreedd, ggrreeeenn, yyeellllooww, bblluuee, mmaaggeennttaa,
-                     ccyyaann, wwhhiittee, ccoolloouurr00 to ccoolloouurr225555 from the 256-colour
-                     set, ddeeffaauulltt, or a hexadecimal RGB string such as
-                     ‘#ffffff’, which chooses the closest match from the
-                     default 256-colour set.
+                     ccyyaann, wwhhiittee, aixterm bright variants (if supported:
+                     bbrriigghhttrreedd, bbrriigghhttggrreeeenn, and so on), ccoolloouurr00 to ccoolloouurr225555
+                     from the 256-colour set, ddeeffaauulltt, or a hexadecimal RGB
+                     string such as ‘#ffffff’, which chooses the closest match
+                     from the default 256-colour set.
+
+             mmeessssaaggee--ccoommmmaanndd--aattttrr _a_t_t_r_i_b_u_t_e_s
+                     Set status line message attributes when in command mode.
+
+             mmeessssaaggee--ccoommmmaanndd--bbgg _c_o_l_o_u_r
+                     Set status line message background colour when in command
+                     mode.
+
+             mmeessssaaggee--ccoommmmaanndd--ffgg _c_o_l_o_u_r
+                     Set status line message foreground colour when in command
+                     mode.
 
              mmeessssaaggee--ffgg _c_o_l_o_u_r
                      Set status line message foreground colour.
@@ -1044,6 +1075,10 @@ OOPPTTIIOONNSS
                      If on, clicking the mouse on a window name in the status
                      line will select that window.
 
+             mmoouussee--uuttff88 [oonn | ooffff]
+                     If enabled, request mouse input as UTF-8 on UTF-8 termi-
+                     nals.
+
              ppaannee--aaccttiivvee--bboorrddeerr--bbgg _c_o_l_o_u_r
 
              ppaannee--aaccttiivvee--bboorrddeerr--ffgg _c_o_l_o_u_r
@@ -1055,10 +1090,11 @@ OOPPTTIIOONNSS
                      Set the pane border colour for panes aside from the
                      active pane.
 
-             pprreeffiixx _k_e_y_s
-                     Set the keys accepted as a prefix key.  _k_e_y_s is a comma-
-                     separated list of key names, each of which individually
-                     behave as the prefix key.
+             pprreeffiixx _k_e_y
+                     Set the key accepted as a prefix key.
+
+             pprreeffiixx22 _k_e_y
+                     Set a secondary key accepted as a prefix key.
 
              rreeppeeaatt--ttiimmee _t_i_m_e
                      Allow multiple commands to be entered without pressing
@@ -1067,10 +1103,6 @@ OOPPTTIIOONNSS
                      when it is bound using the --rr flag to bbiinndd--kkeeyy.  Repeat
                      is enabled for the default keys bound to the rreessiizzee--ppaannee
                      command.
-
-             mmoouussee--uuttff88 [oonn | ooffff]
-                     If enabled, request mouse input as UTF-8 on UTF-8 termi-
-                     nals.
 
              sseett--rreemmaaiinn--oonn--eexxiitt [oonn | ooffff]
                      Set the rreemmaaiinn--oonn--eexxiitt window option for any windows
@@ -1081,11 +1113,12 @@ OOPPTTIIOONNSS
                      the kkiillll--wwiinnddooww command to destroy it.
 
              sseett--ttiittlleess [oonn | ooffff]
-                     Attempt to set the window title using the \e]2;...\007
-                     xterm code if the terminal appears to be an xterm.  This
-                     option is off by default.  Note that elinks will only
-                     attempt to set the window title if the STY environment
-                     variable is set.
+                     Attempt to set the client terminal title using the _t_s_l
+                     and _f_s_l terminfo(5) entries if they exist.  ttmmuuxx automat-
+                     ically sets these to the \e]2;...\007 sequence if the
+                     terminal appears to be an xterm.  This option is off by
+                     default.  Note that elinks will only attempt to set the
+                     window title if the STY environment variable is set.
 
              sseett--ttiittlleess--ssttrriinngg _s_t_r_i_n_g
                      String used to set the window title if sseett--ttiittlleess is on.
@@ -1136,7 +1169,7 @@ OOPPTTIIOONNSS
                            #I                Current window index
                            #P                Current pane index
                            #S                Session name
-                           #T                Current window title
+                           #T                Current pane title
                            #W                Current window name
                            ##                A literal ‘#’
 
@@ -1148,14 +1181,8 @@ OOPPTTIIOONNSS
                      Shell commands are executed with the ttmmuuxx global environ-
                      ment set (see the _E_N_V_I_R_O_N_M_E_N_T section).
 
-                     The window title (#T) is the title set by the program
-                     running within the window using the OSC title setting
-                     sequence, for example:
-
-                           $ printf ’\033]2;My Title\033\\’
-
-                     When a window is first created, its title is the host-
-                     name.
+                     For details on how the names and titles can be set see
+                     the _N_A_M_E_S _A_N_D _T_I_T_L_E_S section.
 
                      #[attributes] allows a comma-separated list of attributes
                      to be specified, these may be ‘fg=colour’ to set the
@@ -1271,6 +1298,12 @@ OOPPTTIIOONNSS
                      If mmoonniittoorr--ssiilleennccee is enabled, prints a message after the
                      interval has expired on a given window.
 
+             wwoorrdd--sseeppaarraattoorrss _s_t_r_i_n_g
+                     Sets the session’s conception of what characters are con-
+                     sidered word separators, for the purposes of the next and
+                     previous word commands in copy mode.  The default is
+                     ‘ -_@’.
+
      sseett--wwiinnddooww--ooppttiioonn [--aagguu] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] _o_p_t_i_o_n _v_a_l_u_e
                    (alias: sseettww)
              Set a window option.  The --aa, --gg and --uu flags work similarly to
@@ -1287,6 +1320,10 @@ OOPPTTIIOONNSS
                      sessions; this option is good for full-screen programs
                      which support SIGWINCH and poor for interactive programs
                      such as shells.
+
+             aallllooww--rreennaammee [oonn | ooffff]
+                     Allow programs to change the window name using a terminal
+                     escape sequence (\033k...\033\\).  The default is on.
 
              aalltteerrnnaattee--ssccrreeeenn [oonn | ooffff]
                      This option configures whether programs running inside
@@ -1305,7 +1342,8 @@ OOPPTTIIOONNSS
                      ning in it.  This flag is automatically disabled for an
                      individual window when a name is specified at creation
                      with nneeww--wwiinnddooww or nneeww--sseessssiioonn, or later with
-                     rreennaammee--wwiinnddooww.  It may be switched off globally with:
+                     rreennaammee--wwiinnddooww, or with a terminal escape sequence.  It
+                     may be switched off globally with:
 
                            set-window-option -g automatic-rename off
 
@@ -1340,11 +1378,13 @@ OOPPTTIIOONNSS
                      modes.  As with the ssttaattuuss--kkeeyyss option, the default is
                      emacs, unless VISUAL or EDITOR contains ‘vi’.
 
-             mmooddee--mmoouussee [oonn | ooffff]
+             mmooddee--mmoouussee [oonn | ooffff | ccooppyy--mmooddee]
                      Mouse state in modes.  If on, the mouse may be used to
                      enter copy mode and copy a selection by dragging, to
                      enter copy mode and scroll with the mouse wheel, or to
-                     select an option in choice mode.
+                     select an option in choice mode.  If set to _c_o_p_y_-_m_o_d_e,
+                     the mouse behaves as set to on, but cannot be used to
+                     enter copy mode.
 
              mmoonniittoorr--aaccttiivviittyy [oonn | ooffff]
                      Monitor for activity in the window.  Windows with activ-
@@ -1373,6 +1413,10 @@ OOPPTTIIOONNSS
                      Like ootthheerr--ppaannee--hheeiigghhtt, but set the width of other panes
                      in the mmaaiinn--vveerrttiiccaall layout.
 
+             ppaannee--bbaassee--iinnddeexx _i_n_d_e_x
+                     Like bbaassee--iinnddeexx, but set the starting index for pane num-
+                     bers.
+
              rreemmaaiinn--oonn--eexxiitt [oonn | ooffff]
                      A window with this flag set is not destroyed when the
                      program running in it exits.  The window may be reacti-
@@ -1387,32 +1431,47 @@ OOPPTTIIOONNSS
                      Instructs ttmmuuxx to expect UTF-8 sequences to appear in
                      this window.
 
+             wwiinnddooww--ssttaattuuss--bbeellll--aattttrr _a_t_t_r_i_b_u_t_e_s
+                     Set status line attributes for windows which have a bell
+                     alert.
+
+             wwiinnddooww--ssttaattuuss--bbeellll--bbgg _c_o_l_o_u_r
+                     Set status line background colour for windows with a bell
+                     alert.
+
+             wwiinnddooww--ssttaattuuss--bbeellll--ffgg _c_o_l_o_u_r
+                     Set status line foreground colour for windows with a bell
+                     alert.
+
+             wwiinnddooww--ssttaattuuss--ccoonntteenntt--aattttrr _a_t_t_r_i_b_u_t_e_s
+                     Set status line attributes for windows which have a con-
+                     tent alert.
+
+             wwiinnddooww--ssttaattuuss--ccoonntteenntt--bbgg _c_o_l_o_u_r
+                     Set status line background colour for windows with a con-
+                     tent alert.
+
+             wwiinnddooww--ssttaattuuss--ccoonntteenntt--ffgg _c_o_l_o_u_r
+                     Set status line foreground colour for windows with a con-
+                     tent alert.
+
+             wwiinnddooww--ssttaattuuss--aaccttiivviittyy--aattttrr _a_t_t_r_i_b_u_t_e_s
+                     Set status line attributes for windows which have an
+                     activity (or silence) alert.
+
+             wwiinnddooww--ssttaattuuss--aaccttiivviittyy--bbgg _c_o_l_o_u_r
+                     Set status line background colour for windows with an
+                     activity alert.
+
+             wwiinnddooww--ssttaattuuss--aaccttiivviittyy--ffgg _c_o_l_o_u_r
+                     Set status line foreground colour for windows with an
+                     activity alert.
+
              wwiinnddooww--ssttaattuuss--aattttrr _a_t_t_r_i_b_u_t_e_s
                      Set status line attributes for a single window.
 
              wwiinnddooww--ssttaattuuss--bbgg _c_o_l_o_u_r
                      Set status line background colour for a single window.
-
-             wwiinnddooww--ssttaattuuss--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for a single window.
-
-             wwiinnddooww--ssttaattuuss--ffoorrmmaatt _s_t_r_i_n_g
-                     Set the format in which the window is displayed in the
-                     status line window list.  See the _s_t_a_t_u_s_-_l_e_f_t option for
-                     details of special character sequences available.  The
-                     default is ‘#I:#W#F’.
-
-             wwiinnddooww--ssttaattuuss--aalleerrtt--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes for windows which have an
-                     alert (bell, activity or content).
-
-             wwiinnddooww--ssttaattuuss--aalleerrtt--bbgg _c_o_l_o_u_r
-                     Set status line background colour for windows with an
-                     alert.
-
-             wwiinnddooww--ssttaattuuss--aalleerrtt--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for windows with an
-                     alert.
 
              wwiinnddooww--ssttaattuuss--ccuurrrreenntt--aattttrr _a_t_t_r_i_b_u_t_e_s
                      Set status line attributes for the currently active win-
@@ -1430,11 +1489,14 @@ OOPPTTIIOONNSS
                      Like _w_i_n_d_o_w_-_s_t_a_t_u_s_-_f_o_r_m_a_t, but is the format used when
                      the window is the current window.
 
-             wwoorrdd--sseeppaarraattoorrss _s_t_r_i_n_g
-                     Sets the window’s conception of what characters are con-
-                     sidered word separators, for the purposes of the next and
-                     previous word commands in copy mode.  The default is
-                     ‘ -_@’.
+             wwiinnddooww--ssttaattuuss--ffgg _c_o_l_o_u_r
+                     Set status line foreground colour for a single window.
+
+             wwiinnddooww--ssttaattuuss--ffoorrmmaatt _s_t_r_i_n_g
+                     Set the format in which the window is displayed in the
+                     status line window list.  See the _s_t_a_t_u_s_-_l_e_f_t option for
+                     details of special character sequences available.  The
+                     default is ‘#I:#W#F’.
 
              xxtteerrmm--kkeeyyss [oonn | ooffff]
                      If this option is set, ttmmuuxx will generate xterm(1) -style
@@ -1453,6 +1515,92 @@ OOPPTTIIOONNSS
                    (alias: sshhoowwww)
              List the window options for _t_a_r_g_e_t_-_w_i_n_d_o_w, or the global window
              options if --gg is used.
+
+FFOORRMMAATTSS
+     The lliisstt--cclliieennttss, lliisstt--sseessssiioonnss, lliisstt--wwiinnddoowwss and lliisstt--ppaanneess commands
+     accept the --FF flag with a _f_o_r_m_a_t argument.  This is a string which con-
+     trols the output format of the command.  Special character sequences are
+     replaced as documented under the ssttaattuuss--lleefftt option and an additional
+     long form is accepted.  Replacement variables are enclosed in ‘#{’ and
+     ‘}’, for example ‘#{session_name}’ is equivalent to ‘#S’.  Conditionals
+     are also accepted by prefixing with ‘?’ and separating two alternatives
+     with a comma; if the specified variable exists and is not zero, the first
+     alternative is chosen, otherwise the second is used.  For example
+     ‘#{?session_attached,attached,not attached}’ will include the string
+     ‘attached’ if the session is attached and the string ‘not attached’ if it
+     is unattached.
+
+     The following variables are available, where appropriate:
+
+           VVaarriiaabbllee nnaammee             RReeppllaacceedd wwiitthh
+           client_activity           Integer time client last had activity
+           client_activity_string    String time client last had activity
+           client_created            Integer time client created
+           client_created_string     String time client created
+           client_cwd                Working directory of client
+           client_height             Height of client
+           client_readonly           1 if client is readonly
+           client_termname           Terminal name of client
+           client_tty                Pseudo terminal of client
+           client_utf8               1 if client supports utf8
+           client_width              Width of client
+           host                      Hostname of local host
+           line                      Line number in the list
+           pane_active               1 if active pane
+           pane_dead                 1 if pane is dead
+           pane_height               Height of pane
+           pane_id                   Unique pane id
+           pane_pid                  PID of first process in pane
+           pane_start_command        Command pane started with
+           pane_start_path           Path pane started with
+           pane_title                Title of pane
+           pane_tty                  Pseudo terminal of pane
+           pane_width                Width of pane
+           session_attached          1 if session attached
+           session_created           Integer time session created
+           session_created_string    String time session created
+           session_group             Number of session group
+           session_grouped           1 if session in a group
+           session_height            Height of session
+           session_name              Name of session
+           session_width             Width of session
+           session_windows           Number of windows in session
+           window_active             1 if window active
+           window_flags              Window flags
+           window_height             Height of window
+           window_index              Index of window
+           window_layout             Window layout description
+           window_name               Name of window
+           window_width              Width of window
+
+NNAAMMEESS AANNDD TTIITTLLEESS
+     ttmmuuxx distinguishes between names and titles.  Windows and sessions have
+     names, which may be used to specify them in targets and are displayed in
+     the status line and various lists: the name is the ttmmuuxx identifier for a
+     window or session.  Only panes have titles.  A pane’s title is typically
+     set by the program running inside the pane and is not modified by ttmmuuxx.
+     It is the same mechanism used to set for example the xterm(1) window
+     title in an X(7) window manager.  Windows themselves do not have titles -
+     a window’s title is the title of its active pane.  ttmmuuxx itself may set
+     the title of the terminal in which the client is running, see the
+     sseett--ttiittlleess option.
+
+     A session’s name is set with the nneeww--sseessssiioonn and rreennaammee--sseessssiioonn commands.
+     A window’s name is set with one of:
+
+     1.      A command argument (such as --nn for nneeww--wwiinnddooww or nneeww--sseessssiioonn).
+
+     2.      An escape sequence:
+
+                   $ printf ’\033kWINDOW_NAME\033\\’
+
+     3.      Automatic renaming, which sets the name to the active command in
+             the window’s active pane.  See the aauuttoommaattiicc--rreennaammee option.
+
+     When a pane is first created, its title is the hostname.  A pane’s title
+     can be set via the OSC title setting sequence, for example:
+
+           $ printf ’\033]2;My Title\033\\’
 
 EENNVVIIRROONNMMEENNTT
      When the server is started, ttmmuuxx copies the environment into the _g_l_o_b_a_l
@@ -1488,7 +1636,8 @@ SSTTAATTUUSS LLIINNEE
      line of each terminal.  By default, the status line is enabled (it may be
      disabled with the ssttaattuuss session option) and contains, from left-to-
      right: the name of the current session in square brackets; the window
-     list; the current window title in double quotes; and the time and date.
+     list; the title of the active pane in double quotes; and the time and
+     date.
 
      The status line is made of three parts: configurable left and right sec-
      tions (which may contain dynamic content such as the time or output from
@@ -1628,9 +1777,10 @@ MMIISSCCEELLLLAANNEEOOUUSS
      cclloocckk--mmooddee [--tt _t_a_r_g_e_t_-_p_a_n_e]
              Display a large clock.
 
-     iiff--sshheellll _s_h_e_l_l_-_c_o_m_m_a_n_d _c_o_m_m_a_n_d
+     iiff--sshheellll _s_h_e_l_l_-_c_o_m_m_a_n_d _c_o_m_m_a_n_d [_c_o_m_m_a_n_d]
                    (alias: iiff)
-             Execute _c_o_m_m_a_n_d if _s_h_e_l_l_-_c_o_m_m_a_n_d returns success.
+             Execute the first _c_o_m_m_a_n_d if _s_h_e_l_l_-_c_o_m_m_a_n_d returns success or the
+             second _c_o_m_m_a_n_d otherwise.
 
      lloocckk--sseerrvveerr
                    (alias: lloocckk)
