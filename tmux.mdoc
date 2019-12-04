@@ -440,7 +440,7 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              given.  _w_i_n_d_o_w_-_n_a_m_e and _s_h_e_l_l_-_c_o_m_m_a_n_d are the name of and shell
              command to execute in the initial window.  With --dd, the initial
              size is 80 x 24; --xx and --yy can be used to specify a different
-             size.
+             size.  ‘-’ uses the size of the current client if any.
 
              If run from a terminal, any termios(4) special characters are
              saved and used for new windows in the new session.
@@ -497,7 +497,7 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
 
      ssoouurrccee--ffiillee [--qq] _p_a_t_h
                    (alias: ssoouurrccee)
-             Execute commands from _p_a_t_h (which may be a glob(3) pattern).  If
+             Execute commands from _p_a_t_h (which may be a glob(7) pattern).  If
              --qq is given, no error will be returned if _p_a_t_h does not exist.
 
              Within a configuration file, commands may be made conditional by
@@ -786,6 +786,8 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
                    Enter  Choose selected item
                    Up     Select previous item
                    Down   Select next item
+                   x      Kill selected item
+                   X      Kill tagged items
                    <      Scroll list of previews left
                    >      Scroll list of previews right
                    C-s    Search by name
@@ -1415,8 +1417,7 @@ OOPPTTIIOONNSS
                      mmaaggeennttaa, ccyyaann, wwhhiittee, aixterm bright variants (if sup-
                      ported: bbrriigghhttrreedd, bbrriigghhttggrreeeenn, and so on), ccoolloouurr00 to
                      ccoolloouurr225555 from the 256-colour set, ddeeffaauulltt, or a hexadec-
-                     imal RGB string such as ‘#ffffff’, which chooses the
-                     closest match from the default 256-colour set.
+                     imal RGB string such as ‘#ffffff’.
 
                      The attributes is either nnoonnee or a comma-delimited list
                      of one or more of: bbrriigghhtt (or bboolldd), ddiimm, uunnddeerrssccoorree,
@@ -1828,6 +1829,12 @@ HHOOOOKKSS
 
      pane-exited             Run when the program running in a pane exits.
 
+     pane-focus-in           Run when the focus enters a pane, if the
+                             ffooccuuss--eevveennttss option is on.
+
+     pane-focus-out          Run when the focus exits a pane, if the
+                             ffooccuuss--eevveennttss option is on.
+
      pane-set-clipboard      Run when the terminal clipboard is set using the
                              xterm(1) escape sequence.
 
@@ -1845,11 +1852,14 @@ HHOOOOKKSS
 
      Hooks are managed with these commands:
 
-     sseett--hhooookk [--gguu] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n] _h_o_o_k_-_n_a_m_e _c_o_m_m_a_n_d
-             Sets (or with --uu unsets) hook _h_o_o_k_-_n_a_m_e to _c_o_m_m_a_n_d.  If --gg is
-             given, _h_o_o_k_-_n_a_m_e is added to the global list of hooks, otherwise
-             it is added to the session hooks (for _t_a_r_g_e_t_-_s_e_s_s_i_o_n with --tt).
-             Like options, session hooks inherit from the global ones.
+     sseett--hhooookk [--ggRRuu] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n] _h_o_o_k_-_n_a_m_e _c_o_m_m_a_n_d
+             Without --RR, sets (or with --uu unsets) hook _h_o_o_k_-_n_a_m_e to _c_o_m_m_a_n_d.
+             If --gg is given, _h_o_o_k_-_n_a_m_e is added to the global list of hooks,
+             otherwise it is added to the session hooks (for _t_a_r_g_e_t_-_s_e_s_s_i_o_n
+             with --tt).  Like options, session hooks inherit from the global
+             ones.
+
+             With --RR, run _h_o_o_k_-_n_a_m_e immediately.
 
      sshhooww--hhooookkss [--gg] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
              Shows the global list of hooks with --gg, otherwise the session
@@ -1890,7 +1900,8 @@ FFOORRMMAATTSS
      variables are enclosed in ‘#{’ and ‘}’, for example ‘#{session_name}’.
      The possible variables are listed in the table below, or the name of a
      ttmmuuxx option may be used for an option’s value.  Some variables have a
-     shorter alias such as ‘#S’, and ‘##’ is replaced by a single ‘#’.
+     shorter alias such as ‘#S’; ‘##’ is replaced by a single ‘#’, ‘#,’ by a
+     ‘,’ and ‘#}’ by a ‘}’.
 
      Conditionals are available by prefixing with ‘?’ and separating two
      alternatives with a comma; if the specified variable exists and is not
@@ -1898,7 +1909,12 @@ FFOORRMMAATTSS
      example ‘#{?session_attached,attached,not attached}’ will include the
      string ‘attached’ if the session is attached and the string ‘not
      attached’ if it is unattached, or ‘#{?automatic-rename,yes,no}’ will
-     include ‘yes’ if aauuttoommaattiicc--rreennaammee is enabled, or ‘no’ if not.
+     include ‘yes’ if aauuttoommaattiicc--rreennaammee is enabled, or ‘no’ if not.  Condition-
+     als can be nested arbitrarily.  Inside a conditional, ‘,’ and ‘}’ must be
+     escaped as ‘#,’ and ‘#}’, unless they are part of a ‘#{...}’ replacement.
+     For example:
+
+           #{?pane_in_mode,#[fg=white#,bg=red],#[fg=red#,bg=white]}#W .
 
      Comparisons may be expressed by prefixing two comma-separated alterna-
      tives by ‘==’ or ‘!=’ and a colon.  For example ‘#{==:#{host},myhost}’
@@ -1907,7 +1923,7 @@ FFOORRMMAATTSS
      tern and the second the string to compare, for example
      ‘#{m:*foo*,#{host}}’.  ‘||’ and ‘&&’ evaluate to true if either or both
      of two comma-separated alternatives are true, for example
-     ‘#{||,#{pane_in_mode},#{alternate_on}}’.  A ‘C’ performs a search for an
+     ‘#{||:#{pane_in_mode},#{alternate_on}}’.  A ‘C’ performs a search for an
      fnmatch(3) pattern in the pane content and evaluates to zero if not
      found, or a line number if found.
 
@@ -2017,6 +2033,7 @@ FFOORRMMAATTSS
      pane_tty                        Pseudo terminal of pane
      pane_width                      Width of pane
      pid                             Server PID
+     rectangle_toggle                1 if rectangle selection is activated
      scroll_region_lower             Bottom of scroll region in pane
      scroll_region_upper             Top of scroll region in pane
      scroll_position                 Scroll position in copy mode
@@ -2082,7 +2099,7 @@ NNAAMMEESS AANNDD TTIITTLLEESS
 
      1.      A command argument (such as --nn for nneeww--wwiinnddooww or nneeww--sseessssiioonn).
 
-     2.      An escape sequence:
+     2.      An escape sequence (if the aallllooww--rreennaammee option is turned on):
 
                    $ printf ’\033kWINDOW_NAME\033\\’
 
