@@ -501,16 +501,22 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              --qq is given, no error will be returned if _p_a_t_h does not exist.
 
              Within a configuration file, commands may be made conditional by
-             surrounding them with _%_i_f and _%_e_n_d_i_f lines.  The argument to _%_i_f
-             is expanded as a format and if it evaluates to false (zero or
-             empty), subsequent lines are ignored until _%_e_n_d_i_f.  For example:
+             surrounding them with _%_i_f and _%_e_n_d_i_f lines.  Additional _%_e_l_i_f and
+             _%_e_l_s_e lines may also be used.  The argument to _%_i_f and _%_e_l_i_f is
+             expanded as a format and if it evaluates to false (zero or
+             empty), subsequent lines are ignored until the next _%_e_l_i_f, _%_e_l_s_e
+             or _%_e_n_d_i_f.  For example:
 
                    %if #{==:#{host},myhost}
                    set -g status-style bg=red
+                   %elif #{==:#{host},myotherhost}
+                   set -g status-style bg=green
+                   %else
+                   set -g status-style bg=blue
                    %endif
 
-             Will change the status line to red if running on ‘myhost’.  _%_i_f
-             may not be nested.
+             Will change the status line to red if running on ‘myhost’, green
+             if running on ‘myotherhost’, or blue if running on another host.
 
      ssttaarrtt--sseerrvveerr
                    (alias: ssttaarrtt)
@@ -578,9 +584,10 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            end-of-line                          $               C-e
            goto-line <line>                     :               g
            halfpage-down                        C-d             M-Down
+           halfpage-down-and-cancel
            halfpage-up                          C-u             M-Up
-           history-bottom                       G               M-<
-           history-top                          g               M->
+           history-bottom                       G               M->
+           history-top                          g               M-<
            jump-again                           ;               ;
            jump-backward <to>                   F               F
            jump-forward <to>                    f               f
@@ -595,12 +602,14 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            next-word-end                        e               M-f
            other-end                            o
            page-down                            C-f             PageDown
+           page-down-and-cancel
            page-up                              C-b             PageUp
            previous-paragraph                   {               M-{
            previous-space                       B
            previous-word                        b               M-b
            rectangle-toggle                     v               R
            scroll-down                          C-e             C-Down
+           scroll-down-and-cancel
            scroll-up                            C-y             C-Up
            search-again                         n               n
            search-backward <for>                ?
@@ -612,6 +621,10 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            start-of-line                        0               C-a
            stop-selection
            top-line                             H               M-R
+
+     The ‘-and-cancel’ variants of some commands exit copy mode after they
+     have completed (for copy commands) or when the cursor reaches the bottom
+     (for scrolling commands).
 
      The next and previous word keys use space and the ‘-’, ‘_’ and ‘@’ char-
      acters as word delimiters by default, but this can be adjusted by setting
@@ -724,11 +737,11 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              the end of the visible pane.  The default is to capture only the
              visible contents of the pane.
 
-     cchhoooossee--cclliieenntt [--NN] [--FF _f_o_r_m_a_t] [--ff _f_i_l_t_e_r] [--OO _s_o_r_t_-_o_r_d_e_r] [--tt
+     cchhoooossee--cclliieenntt [--NNZZ] [--FF _f_o_r_m_a_t] [--ff _f_i_l_t_e_r] [--OO _s_o_r_t_-_o_r_d_e_r] [--tt
              _t_a_r_g_e_t_-_p_a_n_e] [_t_e_m_p_l_a_t_e]
              Put a pane into client mode, allowing a client to be selected
-             interactively from a list.  The following keys may be used in
-             client mode:
+             interactively from a list.  --ZZ zooms the pane.  The following
+             keys may be used in client mode:
 
                    KKeeyy    FFuunnccttiioonn
                    Enter  Choose selected client
@@ -762,12 +775,12 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              each item in the list.  --NN starts without the preview.  This com-
              mand works only if at least one client is attached.
 
-     cchhoooossee--ttrreeee [--NNssww] [--FF _f_o_r_m_a_t] [--ff _f_i_l_t_e_r] [--OO _s_o_r_t_-_o_r_d_e_r] [--tt
+     cchhoooossee--ttrreeee [--GGNNsswwZZ] [--FF _f_o_r_m_a_t] [--ff _f_i_l_t_e_r] [--OO _s_o_r_t_-_o_r_d_e_r] [--tt
              _t_a_r_g_e_t_-_p_a_n_e] [_t_e_m_p_l_a_t_e]
              Put a pane into tree mode, where a session, window or pane may be
              chosen interactively from a list.  --ss starts with sessions col-
-             lapsed and --ww with windows collapsed.  The following keys may be
-             used in tree mode:
+             lapsed and --ww with windows collapsed.  --ZZ zooms the pane.  The
+             following keys may be used in tree mode:
 
                    KKeeyy    FFuunnccttiioonn
                    Enter  Choose selected item
@@ -795,8 +808,9 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              if it evaluates to zero, the item in the list is not shown, oth-
              erwise it is shown.  If a filter would lead to an empty list, it
              is ignored.  --FF specifies the format for each item in the tree.
-             --NN starts without the preview.  This command works only if at
-             least one client is attached.
+             --NN starts without the preview.  --GG includes all sessions in any
+             session groups in the tree rather than only the first.  This com-
+             mand works only if at least one client is attached.
 
      ddiissppllaayy--ppaanneess [--dd _d_u_r_a_t_i_o_n] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t] [_t_e_m_p_l_a_t_e]
                    (alias: ddiissppllaayypp)
@@ -924,14 +938,21 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              Move to the next window in the session.  If --aa is used, move to
              the next window with an alert.
 
-     ppiippee--ppaannee [--oo] [--tt _t_a_r_g_e_t_-_p_a_n_e] [_s_h_e_l_l_-_c_o_m_m_a_n_d]
+     ppiippee--ppaannee [--IIOOoo] [--tt _t_a_r_g_e_t_-_p_a_n_e] [_s_h_e_l_l_-_c_o_m_m_a_n_d]
                    (alias: ppiippeepp)
-             Pipe any output sent by the program in _t_a_r_g_e_t_-_p_a_n_e to a shell
-             command.  A pane may only be piped to one command at a time, any
-             existing pipe is closed before _s_h_e_l_l_-_c_o_m_m_a_n_d is executed.  The
-             _s_h_e_l_l_-_c_o_m_m_a_n_d string may contain the special character sequences
-             supported by the ssttaattuuss--lleefftt option.  If no _s_h_e_l_l_-_c_o_m_m_a_n_d is
-             given, the current pipe (if any) is closed.
+             Pipe output sent by the program in _t_a_r_g_e_t_-_p_a_n_e to a shell command
+             or vice versa.  A pane may only be connected to one command at a
+             time, any existing pipe is closed before _s_h_e_l_l_-_c_o_m_m_a_n_d is exe-
+             cuted.  The _s_h_e_l_l_-_c_o_m_m_a_n_d string may contain the special charac-
+             ter sequences supported by the ssttaattuuss--lleefftt option.  If no
+             _s_h_e_l_l_-_c_o_m_m_a_n_d is given, the current pipe (if any) is closed.
+
+             --II and --OO specify which of the _s_h_e_l_l_-_c_o_m_m_a_n_d output streams are
+             connected to the pane: with --II stdout is connected (so anything
+             _s_h_e_l_l_-_c_o_m_m_a_n_d prints is written to the pane as if it were typed);
+             with --OO stdin is connected (so any output in the pane is piped to
+             _s_h_e_l_l_-_c_o_m_m_a_n_d).  Both may be used together and if neither are
+             specified, --OO is used.
 
              The --oo option only opens a new pipe if no previous pipe exists,
              allowing a pipe to be toggled with a single key, for example:
@@ -990,13 +1011,14 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              Rotate the positions of the panes within a window, either upward
              (numerically lower) with --UU or downward (numerically higher).
 
-     sseelleecctt--llaayyoouutt [--nnoopp] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] [_l_a_y_o_u_t_-_n_a_m_e]
+     sseelleecctt--llaayyoouutt [--EEnnoopp] [--tt _t_a_r_g_e_t_-_p_a_n_e] [_l_a_y_o_u_t_-_n_a_m_e]
                    (alias: sseelleeccttll)
              Choose a specific layout for a window.  If _l_a_y_o_u_t_-_n_a_m_e is not
              given, the last preset layout used (if any) is reapplied.  --nn and
              --pp are equivalent to the nneexxtt--llaayyoouutt and pprreevviioouuss--llaayyoouutt com-
              mands.  --oo applies the last set layout if possible (undoes the
-             most recent layout change).
+             most recent layout change).  --EE spreads the current pane and any
+             panes next to it out evenly.
 
      sseelleecctt--ppaannee [--DDddeeggLLllMMmmRRUU] [--PP _s_t_y_l_e] [--TT _t_i_t_l_e] [--tt _t_a_r_g_e_t_-_p_a_n_e]
                    (alias: sseelleeccttpp)
@@ -1231,6 +1253,10 @@ OOPPTTIIOONNSS
                      an escape is input to determine if it is part of a func-
                      tion or meta key sequences.  The default is 500 millisec-
                      onds.
+
+             eexxiitt--eemmppttyy [oonn | ooffff]
+                     If enabled (the default), the server will exit when there
+                     are no active sessions.
 
              eexxiitt--uunnaattttaacchheedd [oonn | ooffff]
                      If enabled, the server will exit when there are no
@@ -1585,7 +1611,7 @@ OOPPTTIIOONNSS
 
              aallllooww--rreennaammee [oonn | ooffff]
                      Allow programs to change the window name using a terminal
-                     escape sequence (\ek...\e\\).  The default is on.
+                     escape sequence (\ek...\e\\).  The default is off.
 
              aalltteerrnnaattee--ssccrreeeenn [oonn | ooffff]
                      This option configures whether programs running inside
@@ -1776,7 +1802,9 @@ HHOOOOKKSS
 
            set-hook after-split-window "selectl even-vertical"
 
-     In addition, the following hooks are available:
+     All the notifications listed in the _C_O_N_T_R_O_L _M_O_D_E section are hooks (with-
+     out any arguments), except %%eexxiitt.  The following additional hooks are
+     available:
 
      alert-activity          Run when a window has activity.  See
                              mmoonniittoorr--aaccttiivviittyy.
@@ -1838,8 +1866,8 @@ MMOOUUSSEE SSUUPPPPOORRTT
            MouseDown1    MouseUp1      MouseDrag1   MouseDragEnd1
            MouseDown2    MouseUp2      MouseDrag2   MouseDragEnd2
            MouseDown3    MouseUp3      MouseDrag3   MouseDragEnd3
-           DoubleClick1  DoubleClick2  DoubleClick3 WheelUp
-           TripleClick1  TripleClick2  TripleClick3 WheelDown
+           DoubleClick1  DoubleClick2  DoubleClick3
+           TripleClick1  TripleClick2  TripleClick3
 
      Each should be suffixed with a location, for example ‘MouseDown1Status’.
 
@@ -1940,7 +1968,7 @@ FFOORRMMAATTSS
      cursor_y                        Cursor Y position in pane
      history_bytes                   Number of bytes in window history
      history_limit                   Maximum window history lines
-     history_size                    Size of history in bytes
+     history_size                    Size of history in lines
      hook                            Name of running hook, if any
      hook_pane                       ID of pane where hook was run, if any
      hook_session                    ID of session where hook was run, if any
@@ -2001,6 +2029,8 @@ FFOORRMMAATTSS
                                      assuming the current)
      session_last_attached           Time session last attached
      session_group                   Name of session group
+     session_group_size              Size of session group
+     session_group_list              List of sessions in group
      session_grouped                 1 if session in a group
      session_height                  Height of session
      session_id                      Unique session ID
@@ -2223,14 +2253,14 @@ BBUUFFFFEERRSS
 
      The buffer commands are as follows:
 
-     cchhoooossee--bbuuffffeerr [--NN] [--FF _f_o_r_m_a_t] [--ff _f_i_l_t_e_r] [--OO _s_o_r_t_-_o_r_d_e_r] [--tt
+     cchhoooossee--bbuuffffeerr [--NNZZ] [--FF _f_o_r_m_a_t] [--ff _f_i_l_t_e_r] [--OO _s_o_r_t_-_o_r_d_e_r] [--tt
              _t_a_r_g_e_t_-_p_a_n_e] [_t_e_m_p_l_a_t_e]
              Put a pane into buffer mode, where a buffer may be chosen inter-
-             actively from a list.  The following keys may be used in buffer
-             mode:
+             actively from a list.  --ZZ zooms the pane.  The following keys may
+             be used in buffer mode:
 
                    KKeeyy    FFuunnccttiioonn
-                   Enter  Choose selected buffer
+                   Enter  Paste selected buffer
                    Up     Select previous buffer
                    Down   Select next buffer
                    C-s    Search by name or content
@@ -2238,6 +2268,8 @@ BBUUFFFFEERRSS
                    t      Toggle if buffer is tagged
                    T      Tag no buffers
                    C-t    Tag all buffers
+                   p      Paste selected buffer
+                   P      Paste tagged buffers
                    d      Delete selected buffer
                    D      Delete tagged buffers
                    f      Enter a format to filter items
