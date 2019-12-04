@@ -407,7 +407,7 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              --FF flag, see the _F_O_R_M_A_T_S section.  If _t_a_r_g_e_t_-_s_e_s_s_i_o_n is speci-
              fied, list only clients connected to that session.
 
-     lliisstt--ccoommmmaannddss
+     lliisstt--ccoommmmaannddss [--FF _f_o_r_m_a_t]
                    (alias: llssccmm)
              List the syntax of all commands supported by ttmmuuxx.
 
@@ -477,9 +477,10 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              option.  With --tt, display the log for _t_a_r_g_e_t_-_c_l_i_e_n_t.  --JJ and --TT
              show debugging information about jobs and terminals.
 
-     ssoouurrccee--ffiillee _p_a_t_h
+     ssoouurrccee--ffiillee [--qq] _p_a_t_h
                    (alias: ssoouurrccee)
-             Execute commands from _p_a_t_h.
+             Execute commands from _p_a_t_h.  If --qq is given, no error will be
+             returned if _p_a_t_h does not exist.
 
      ssttaarrtt--sseerrvveerr
                    (alias: ssttaarrtt)
@@ -510,7 +511,7 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
                    bind-key -Troot   a switch-client -Ttable1
 
 WWIINNDDOOWWSS AANNDD PPAANNEESS
-     A ttmmuuxx window may be in one of several modes.  The default permits direct
+     A ttmmuuxx window may be in one of two modes.  The default permits direct
      access to the terminal attached to the window.  The other is copy mode,
      which permits a section of a window or its history to be copied to a
      _p_a_s_t_e _b_u_f_f_e_r for later insertion into another window.  This mode is
@@ -549,6 +550,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            Jump to backward             T
            Jump to forward              t
            Next page                    C-f             Page down
+           Next paragraph               }               M-}
            Next space                   W
            Next space, end of word      E
            Next word                    w
@@ -556,6 +558,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            Other end of selection       o
            Paste buffer                 p               C-y
            Previous page                C-b             Page up
+           Previous paragraph           {               M-{
            Previous space               B
            Previous word                b               M-b
            Quit mode                    q               Escape
@@ -761,12 +764,15 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              see the _F_O_R_M_A_T_S section.  This command works only if at least one
              client is attached.
 
-     ddiissppllaayy--ppaanneess [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
+     ddiissppllaayy--ppaanneess [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t] [_t_e_m_p_l_a_t_e]
                    (alias: ddiissppllaayypp)
              Display a visible indicator of each pane shown by _t_a_r_g_e_t_-_c_l_i_e_n_t.
              See the ddiissppllaayy--ppaanneess--ttiimmee, ddiissppllaayy--ppaanneess--ccoolloouurr, and
              ddiissppllaayy--ppaanneess--aaccttiivvee--ccoolloouurr session options.  While the indicator
-             is on screen, a pane may be selected with the ‘0’ to ‘9’ keys.
+             is on screen, a pane may be chosen with the ‘0’ to ‘9’ keys,
+             which will cause _t_e_m_p_l_a_t_e to be executed as a command with ‘%%’
+             substituted by the pane ID.  The default _t_e_m_p_l_a_t_e is "select-pane
+             -t ’%%’".
 
      ffiinndd--wwiinnddooww [--CCNNTT] [--FF _f_o_r_m_a_t] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] _m_a_t_c_h_-_s_t_r_i_n_g
                    (alias: ffiinnddww)
@@ -991,9 +997,11 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              assumed.  The --ll and --pp options specify the size of the new pane
              in lines (for vertical split) or in cells (for horizontal split),
              or as a percentage, respectively.  The --bb option causes the new
-             pane to be created to the left of or above _t_a_r_g_e_t_-_p_a_n_e.  All
-             other options have the same meaning as for the nneeww--wwiinnddooww com-
-             mand.
+             pane to be created to the left of or above _t_a_r_g_e_t_-_p_a_n_e.  The --ff
+             option creates a new pane spanning the full window height (with
+             --hh) or full window width (with --vv), instead of splitting the
+             active pane.  All other options have the same meaning as for the
+             nneeww--wwiinnddooww command.
 
      sswwaapp--ppaannee [--ddDDUU] [--ss _s_r_c_-_p_a_n_e] [--tt _d_s_t_-_p_a_n_e]
                    (alias: sswwaapppp)
@@ -1037,7 +1045,8 @@ KKEEYY BBIINNDDIINNGGSS
 
      Commands related to key bindings are as follows:
 
-     bbiinndd--kkeeyy [--ccnnrr] [--tt _m_o_d_e_-_t_a_b_l_e] [--TT _k_e_y_-_t_a_b_l_e] _k_e_y _c_o_m_m_a_n_d [_a_r_g_u_m_e_n_t_s]
+     bbiinndd--kkeeyy [--ccnnrr] [--RR _r_e_p_e_a_t_-_c_o_u_n_t] [--tt _m_o_d_e_-_t_a_b_l_e] [--TT _k_e_y_-_t_a_b_l_e] _k_e_y
+             _c_o_m_m_a_n_d [_a_r_g_u_m_e_n_t_s]
                    (alias: bbiinndd)
              Bind key _k_e_y to _c_o_m_m_a_n_d.  Keys are bound in a key table.  By
              default (without -T), the key is bound in the _p_r_e_f_i_x key table.
@@ -1052,9 +1061,12 @@ KKEEYY BBIINNDDIINNGGSS
              indicates this key may repeat, see the rreeppeeaatt--ttiimmee option.
 
              If --tt is present, _k_e_y is bound in _m_o_d_e_-_t_a_b_l_e: the binding for
-             command mode with --cc or for normal mode without.  See the _W_I_N_D_O_W_S
-             _A_N_D _P_A_N_E_S section and the lliisstt--kkeeyyss command for information on
-             mode key bindings.
+             command mode with --cc or for normal mode without.  For keys in the
+             _v_i_-_c_o_p_y or _e_m_a_c_s_-_c_o_p_y tables, --RR specifies how many times the
+             command should be repeated.
+
+             See the _W_I_N_D_O_W_S _A_N_D _P_A_N_E_S section and the lliisstt--kkeeyyss command for
+             information on mode key bindings.
 
              To view the default bindings and possible commands, see the
              lliisstt--kkeeyyss command.
@@ -1411,16 +1423,14 @@ OOPPTTIIOONNSS
                      Display _s_t_r_i_n_g (by default the session name) to the left
                      of the status bar.  _s_t_r_i_n_g will be passed through
                      strftime(3) and formats (see _F_O_R_M_A_T_S) will be expanded.
-                     It may also contain any of the following special charac-
-                     ter sequences:
-
-                           CChhaarraacctteerr ppaaiirr    RReeppllaacceedd wwiitthh
-                           #[attributes]     Colour or attribute change
-                           ##                A literal ‘#’
+                     It may also contain the special character sequence #[] to
+                     change the colour or attributes, for example
+                     ‘#[fg=red,bright]’ to set a bright red foreground.  See
+                     the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option for a description of
+                     colours and attributes.
 
                      For details on how the names and titles can be set see
-                     the _N_A_M_E_S _A_N_D _T_I_T_L_E_S section.  For a list of allowed
-                     attributes see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
+                     the _N_A_M_E_S _A_N_D _T_I_T_L_E_S section.
 
                      Examples are:
 
@@ -1597,6 +1607,12 @@ OOPPTTIIOONNSS
                      Like bbaassee--iinnddeexx, but set the starting index for pane num-
                      bers.
 
+             ppaannee--bboorrddeerr--ffoorrmmaatt _f_o_r_m_a_t
+                     Set the text shown in pane border status lines.
+
+             ppaannee--bboorrddeerr--ssttaattuuss [ooffff | ttoopp | bboottttoomm]
+                     Turn pane border status lines off or set their position.
+
              ppaannee--bboorrddeerr--ssttyyllee _s_t_y_l_e
                      Set the pane border style for panes aside from the active
                      pane.  For how to specify _s_t_y_l_e, see the
@@ -1684,8 +1700,23 @@ OOPPTTIIOONNSS
              option value, not the name.
 
 HHOOOOKKSS
-     ttmmuuxx allows commands to run on various triggers, called _h_o_o_k_s.  Each hook
-     has a _n_a_m_e.  The following hooks are available:
+     ttmmuuxx allows commands to run on various triggers, called _h_o_o_k_s.  Each ttmmuuxx
+     command has a _b_e_f_o_r_e hook and an _a_f_t_e_r hook and there are a number of
+     hooks not associated with commands.
+
+     A command’s before hook is run before the command is executed and its
+     after hook is run afterwards, except when the command is run as part of a
+     hook itself.  Before hooks are named using the ‘before-’ prefix and after
+     hooks the ‘after-’ prefix.  For example, the following command adds a
+     hook to select the even-vertical layout after every sspplliitt--wwiinnddooww:
+
+           set-hook after-split-window "selectl even-vertical"
+
+     Or to write when each new window is created to a file:
+
+           set-hook before-new-window ’run "date >>/tmp/log"’
+
+     In addition, the following hooks are available:
 
      alert-activity    Run when a window has activity.  See mmoonniittoorr--aaccttiivviittyy.
 
@@ -1785,6 +1816,7 @@ FFOORRMMAATTSS
      alternate_on                    If pane is in alternate screen
      alternate_saved_x               Saved cursor X in alternate screen
      alternate_saved_y               Saved cursor Y in alternate screen
+     buffer_name                     Name of buffer
      buffer_sample                   Sample of start of buffer
      buffer_size                     Size of the specified buffer in bytes
      client_activity                 Integer time client last had activity
@@ -1801,7 +1833,11 @@ FFOORRMMAATTSS
      client_tty                      Pseudo terminal of client
      client_utf8                     1 if client supports utf8
      client_width                    Width of client
+     command_hooked                  Name of command hooked, if any
      command_name                    Name of command in use, if any
+     command_list_name               Command name if listing commands
+     command_list_alias              Command alias if listing commands
+     command_list_usage              Command usage if listing commands
      cursor_flag                     Pane cursor flag
      cursor_x                        Cursor X position in pane
      cursor_y                        Cursor Y position in pane
@@ -1855,9 +1891,10 @@ FFOORRMMAATTSS
      session_name           #S       Name of session
      session_width                   Width of session
      session_windows                 Number of windows in session
-     socket_path             Server socket path
+     socket_path                     Server socket path
      start_time                      Server start time
      window_activity                 Integer time of window last activity
+     window_activity_flag            1 if window has activity
      window_active                   1 if window active
      window_bell_flag                1 if window has bell
      window_find_matches             Matched data from the find-window
@@ -1995,10 +2032,9 @@ SSTTAATTUUSS LLIINNEE
 
              Before the command is executed, the first occurrence of the
              string ‘%%’ and all occurrences of ‘%1’ are replaced by the
-             response to the first prompt, the second ‘%%’ and all ‘%2’ are
-             replaced with the response to the second prompt, and so on for
-             further prompts.  Up to nine prompt responses may be replaced
-             (‘%1’ to ‘%9’).
+             response to the first prompt, all ‘%2’ are replaced with the
+             response to the second prompt, and so on for further prompts.  Up
+             to nine prompt responses may be replaced (‘%1’ to ‘%9’).
 
      ccoonnffiirrmm--bbeeffoorree [--pp _p_r_o_m_p_t] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t] _c_o_m_m_a_n_d
                    (alias: ccoonnffiirrmm)
@@ -2024,8 +2060,8 @@ BBUUFFFFEERRSS
      an automatically named buffer with sseett--bbuuffffeerr --nn.  Automatically named
      buffers are given a name such as ‘buffer0001’, ‘buffer0002’ and so on.
      When the bbuuffffeerr--lliimmiitt option is reached, the oldest automatically named
-     buffer is deleted.  Explicitly named are not subject to bbuuffffeerr--lliimmiitt and
-     may be deleted with ddeelleettee--bbuuffffeerr command.
+     buffer is deleted.  Explicitly named buffers are not subject to
+     bbuuffffeerr--lliimmiitt and may be deleted with ddeelleettee--bbuuffffeerr command.
 
      Buffers may be added using ccooppyy--mmooddee or the sseett--bbuuffffeerr and llooaadd--bbuuffffeerr
      commands, and pasted into a window using the ppaassttee--bbuuffffeerr command.  If a
