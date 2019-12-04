@@ -1685,8 +1685,7 @@ OOPPTTIIOONNSS
              xxtteerrmm--kkeeyyss [oonn | ooffff]
                      If this option is set, ttmmuuxx will generate xterm(1) -style
                      function key sequences; these have a number included to
-                     indicate modifiers such as Shift, Alt or Ctrl.  The
-                     default is off.
+                     indicate modifiers such as Shift, Alt or Ctrl.
 
      sshhooww--ooppttiioonnss [--ggqqssvvww] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n | _t_a_r_g_e_t_-_w_i_n_d_o_w] [_o_p_t_i_o_n]
                    (alias: sshhooww)
@@ -1809,7 +1808,7 @@ FFOORRMMAATTSS
 
      Simple comparisons may be expressed by prefixing two comma-separated
      alternatives by ‘==’ or ‘!=’ and a colon.  For example
-     ‘#{==,#{host},myhost}’ will be replaced by ‘1’ if running on ‘myhost’,
+     ‘#{==:#{host},myhost}’ will be replaced by ‘1’ if running on ‘myhost’,
      otherwise by ‘0.’
 
      A limit may be placed on the length of the resultant string by prefixing
@@ -1827,9 +1826,10 @@ FFOORRMMAATTSS
      using ‘#()’.  For example, ‘#(uptime)’ will insert the system’s uptime.
      When constructing formats, ttmmuuxx does not wait for ‘#()’ commands to fin-
      ish; instead, the previous result from running the same command is used,
-     or a placeholder if the command has not been run before.  Commands are
-     executed with the ttmmuuxx global environment set (see the _E_N_V_I_R_O_N_M_E_N_T sec-
-     tion).
+     or a placeholder if the command has not been run before.  If the command
+     hasn’t exited, the most recent line of output will be used, but the sta-
+     tus line will not be updated more than once a second.  Commands are exe-
+     cuted with the ttmmuuxx global environment set (see the _E_N_V_I_R_O_N_M_E_N_T section).
 
      The following variables are available, where appropriate:
 
@@ -1843,6 +1843,7 @@ FFOORRMMAATTSS
      client_activity                 Integer time client last had activity
      client_created                  Integer time client created
      client_control_mode             1 if client is in control mode
+     client_discarded                Bytes discarded when client behind
      client_height                   Height of client
      client_key_table                Current key table
      client_last_session             Name of the client’s last session
@@ -1896,8 +1897,10 @@ FFOORRMMAATTSS
      pane_input_off                  If input to pane is disabled
      pane_index             #P       Index of pane
      pane_left                       Left of pane
+     pane_mode                       Name of pane mode, if any.
      pane_pid                        PID of first process in pane
      pane_right                      Right of pane
+     pane_search_string              Last search string in copy mode
      pane_start_command              Command pane started with
      pane_synchronized               If pane is synchronized
      pane_tabs                       Pane tab positions
@@ -1920,6 +1923,7 @@ FFOORRMMAATTSS
      session_id                      Unique session ID
      session_many_attached           1 if multiple clients attached
      session_name           #S       Name of session
+     session_stack                   Window indexes in most recent order
      session_width                   Width of session
      session_windows                 Number of windows in session
      socket_path                     Server socket path
@@ -1941,6 +1945,7 @@ FFOORRMMAATTSS
      window_name            #W       Name of window
      window_panes                    Number of panes in window
      window_silence_flag             1 if window has silence alert
+     window_stack_index              Index in session most recent stack
      window_visible_layout           Window layout description, respecting
                                      zoomed window panes
      window_width                    Width of window
@@ -2277,6 +2282,10 @@ CCOONNTTRROOLL MMOODDEE
 
      The following notifications are defined:
 
+     %%cclliieenntt--sseessssiioonn--cchhaannggeedd _c_l_i_e_n_t _s_e_s_s_i_o_n_-_i_d _n_a_m_e
+             The client is now attached to the session with ID _s_e_s_s_i_o_n_-_i_d,
+             which is named _n_a_m_e.
+
      %%eexxiitt [_r_e_a_s_o_n]
              The ttmmuuxx client is exiting immediately, either because it is not
              attached to any session or an error occurred.  If present, _r_e_a_s_o_n
@@ -2291,12 +2300,19 @@ CCOONNTTRROOLL MMOODDEE
              A window pane produced output.  _v_a_l_u_e escapes non-printable char-
              acters and backslash as octal \xxx.
 
+     %%ppaannee--mmooddee--cchhaannggeedd _p_a_n_e_-_i_d
+             The pane with ID _p_a_n_e_-_i_d has changed mode.
+
      %%sseessssiioonn--cchhaannggeedd _s_e_s_s_i_o_n_-_i_d _n_a_m_e
              The client is now attached to the session with ID _s_e_s_s_i_o_n_-_i_d,
              which is named _n_a_m_e.
 
      %%sseessssiioonn--rreennaammeedd _n_a_m_e
              The current session was renamed to _n_a_m_e.
+
+     %%sseessssiioonn--wwiinnddooww--cchhaannggeedd _s_e_s_s_i_o_n_-_i_d _w_i_n_d_o_w_-_i_d
+             The session with ID _s_e_s_s_i_o_n_-_i_d changed its active window to the
+             window with ID _w_i_n_d_o_w_-_i_d.
 
      %%sseessssiioonnss--cchhaannggeedd
              A session was created or destroyed.
@@ -2310,6 +2326,10 @@ CCOONNTTRROOLL MMOODDEE
 
      %%wwiinnddooww--cclloossee _w_i_n_d_o_w_-_i_d
              The window with ID _w_i_n_d_o_w_-_i_d closed.
+
+     %%wwiinnddooww--ppaannee--cchhaannggeedd _w_i_n_d_o_w_-_i_d _p_a_n_e_-_i_d
+             The active pane in the window with ID _w_i_n_d_o_w_-_i_d changed to the
+             pane with ID _p_a_n_e_-_i_d.
 
      %%wwiinnddooww--rreennaammeedd _w_i_n_d_o_w_-_i_d _n_a_m_e
              The window with ID _w_i_n_d_o_w_-_i_d was renamed to _n_a_m_e.
