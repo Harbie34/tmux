@@ -4,7 +4,7 @@ NNAAMMEE
      ttmmuuxx - terminal multiplexer
 
 SSYYNNOOPPSSIISS
-     ttmmuuxx [--2288llCCqquuvvVV] [--cc _s_h_e_l_l_-_c_o_m_m_a_n_d] [--ff _f_i_l_e] [--LL _s_o_c_k_e_t_-_n_a_m_e]
+     ttmmuuxx [--22llCCqquuvvVV] [--cc _s_h_e_l_l_-_c_o_m_m_a_n_d] [--ff _f_i_l_e] [--LL _s_o_c_k_e_t_-_n_a_m_e]
           [--SS _s_o_c_k_e_t_-_p_a_t_h] [_c_o_m_m_a_n_d [_f_l_a_g_s]]
 
 DDEESSCCRRIIPPTTIIOONN
@@ -40,10 +40,8 @@ DDEESSCCRRIIPPTTIIOONN
 
      --22            Force ttmmuuxx to assume the terminal supports 256 colours.
 
-     --88            Like --22, but indicates that the terminal supports 88
-                   colours.
-
-     --CC            Start in control mode.  Given twice (--CCCC) disables echo.
+     --CC            Start in control mode (see the _C_O_N_T_R_O_L _M_O_D_E section).
+                   Given twice (--CCCC) disables echo.
 
      --cc _s_h_e_l_l_-_c_o_m_m_a_n_d
                    Execute _s_h_e_l_l_-_c_o_m_m_a_n_d using the default shell.  If neces-
@@ -53,8 +51,8 @@ DDEESSCCRRIIPPTTIIOONN
 
      --ff _f_i_l_e       Specify an alternative configuration file.  By default,
                    ttmmuuxx loads the system configuration file from
-                   _/_e_t_c_/_t_m_u_x_._c_o_n_f, if present, then looks for a user configu-
-                   ration file at _~_/_._t_m_u_x_._c_o_n_f.
+                   _@_S_Y_S_C_O_N_F_D_I_R_@_/_t_m_u_x_._c_o_n_f, if present, then looks for a user
+                   configuration file at _~_/_._t_m_u_x_._c_o_n_f.
 
                    The configuration file is a set of ttmmuuxx commands which are
                    executed in sequence when the server is first started.
@@ -67,12 +65,13 @@ DDEESSCCRRIIPPTTIIOONN
                    process the rest of the configuration file.
 
      --LL _s_o_c_k_e_t_-_n_a_m_e
-                   ttmmuuxx stores the server socket in a directory under _/_t_m_p (or
-                   TMPDIR if set); the default socket is named _d_e_f_a_u_l_t.  This
-                   option allows a different socket name to be specified,
-                   allowing several independent ttmmuuxx servers to be run.
-                   Unlike --SS a full path is not necessary: the sockets are all
-                   created in the same directory.
+                   ttmmuuxx stores the server socket in a directory under
+                   TMUX_TMPDIR, TMPDIR if it is unset, or _/_t_m_p if both are
+                   unset.  The default socket is named _d_e_f_a_u_l_t.  This option
+                   allows a different socket name to be specified, allowing
+                   several independent ttmmuuxx servers to be run.  Unlike --SS a
+                   full path is not necessary: the sockets are all created in
+                   the same directory.
 
                    If the socket is accidentally removed, the SIGUSR1 signal
                    may be sent to the ttmmuuxx server process to recreate it.
@@ -294,7 +293,7 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
 
      The following commands are available to manage clients and sessions:
 
-     aattttaacchh--sseessssiioonn [--ddrr] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+     aattttaacchh--sseessssiioonn [--ddrr] [--cc _w_o_r_k_i_n_g_-_d_i_r_e_c_t_o_r_y] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: aattttaacchh)
              If run from outside ttmmuuxx, create a new client in the current ter-
              minal and attach it to _t_a_r_g_e_t_-_s_e_s_s_i_o_n.  If used from inside,
@@ -310,6 +309,9 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              The _t_a_r_g_e_t_-_s_e_s_s_i_o_n rules for aattttaacchh--sseessssiioonn are slightly
              adjusted: if ttmmuuxx needs to select the most recently used session,
              it will prefer the most recently used _u_n_a_t_t_a_c_h_e_d session.
+
+             --cc will set the session working directory (used for new windows)
+             to _w_o_r_k_i_n_g_-_d_i_r_e_c_t_o_r_y.
 
      ddeettaacchh--cclliieenntt [--PP] [--aa] [--ss _t_a_r_g_e_t_-_s_e_s_s_i_o_n] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
                    (alias: ddeettaacchh)
@@ -327,11 +329,10 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
      kkiillll--sseerrvveerr
              Kill the ttmmuuxx server and clients and destroy all sessions.
 
-     kkiillll--sseessssiioonn
-             [--aa] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n] Destroy the given session, closing any
-             windows linked to it and no other sessions, and detaching all
-             clients attached to it.  If --aa is given, all sessions but the
-             specified one is killed.
+     kkiillll--sseessssiioonn [--aa] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+             Destroy the given session, closing any windows linked to it and
+             no other sessions, and detaching all clients attached to it.  If
+             --aa is given, all sessions but the specified one is killed.
 
      lliisstt--cclliieennttss [--FF _f_o_r_m_a_t] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: llsscc)
@@ -356,8 +357,9 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
                    (alias: lloocckkss)
              Lock all clients attached to _t_a_r_g_e_t_-_s_e_s_s_i_o_n.
 
-     nneeww--sseessssiioonn [--AAddDDPP] [--FF _f_o_r_m_a_t] [--nn _w_i_n_d_o_w_-_n_a_m_e] [--ss _s_e_s_s_i_o_n_-_n_a_m_e] [--tt
-             _t_a_r_g_e_t_-_s_e_s_s_i_o_n] [--xx _w_i_d_t_h] [--yy _h_e_i_g_h_t] [_s_h_e_l_l_-_c_o_m_m_a_n_d]
+     nneeww--sseessssiioonn [--AAddDDPP] [--cc _s_t_a_r_t_-_d_i_r_e_c_t_o_r_y] [--FF _f_o_r_m_a_t] [--nn _w_i_n_d_o_w_-_n_a_m_e] [--ss
+             _s_e_s_s_i_o_n_-_n_a_m_e] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n] [--xx _w_i_d_t_h] [--yy _h_e_i_g_h_t]
+             [_s_h_e_l_l_-_c_o_m_m_a_n_d]
                    (alias: nneeww)
              Create a new session with name _s_e_s_s_i_o_n_-_n_a_m_e.
 
@@ -397,12 +399,14 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
                    (alias: rreennaammee)
              Rename the session to _n_e_w_-_n_a_m_e.
 
-     sshhooww--mmeessssaaggeess [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
+     sshhooww--mmeessssaaggeess [--IIJJTT] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
                    (alias: sshhoowwmmssggss)
-             Any messages displayed on the status line are saved in a per-
-             client message log, up to a maximum of the limit set by the
-             _m_e_s_s_a_g_e_-_l_i_m_i_t session option for the session attached to that
-             client.  This command displays the log for _t_a_r_g_e_t_-_c_l_i_e_n_t.
+             Show client messages or server information.  Any messages dis-
+             played on the status line are saved in a per-client message log,
+             up to a maximum of the limit set by the _m_e_s_s_a_g_e_-_l_i_m_i_t session
+             option for the session attached to that client.  With --tt, display
+             the log for _t_a_r_g_e_t_-_c_l_i_e_n_t.  --II, --JJ and --TT show debugging informa-
+             tion about the running server, jobs and terminals.
 
      ssoouurrccee--ffiillee _p_a_t_h
                    (alias: ssoouurrccee)
@@ -466,6 +470,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            Next space, end of word      E
            Next word                    w
            Next word end                e               M-f
+           Other end of selection       o
            Paste buffer                 p               C-y
            Previous page                C-b             Page up
            Previous word                b               M-b
@@ -767,14 +772,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              flag is used, in which case it is destroyed.  _s_h_e_l_l_-_c_o_m_m_a_n_d is
              the command to execute.  If _s_h_e_l_l_-_c_o_m_m_a_n_d is not specified, the
              value of the ddeeffaauulltt--ccoommmmaanndd option is used.  --cc specifies the
-             working directory in which the new window is created.  It may
-             have an absolute path or one of the following values (or a subdi-
-             rectory):
-
-                   Empty string    Current pane’s directory
-                   ~               User’s home directory
-                   -               Where session was started
-                   .               Where server was started
+             working directory in which the new window is created.
 
              When the shell command completes, the window closes.  See the
              rreemmaaiinn--oonn--eexxiitt option to change this behaviour.
@@ -1006,15 +1004,28 @@ OOPPTTIIOONNSS
              command), a server option with --ss, otherwise a session option.
 
              If --gg is specified, the global session or window option is set.
-             With --aa, and if the option expects a string, _v_a_l_u_e is appended to
-             the existing setting.  The --uu flag unsets an option, so a session
-             inherits the option from the global options.  It is not possible
-             to unset a global option.
+             The --uu flag unsets an option, so a session inherits the option
+             from the global options.  It is not possible to unset a global
+             option.
 
              The --oo flag prevents setting an option that is already set.
 
              The --qq flag suppresses the informational message (as if the qquuiieett
              server option was set).
+
+             With --aa, and if the option expects a string or a style, _v_a_l_u_e is
+             appended to the existing setting.  For example:
+
+                   set -g status-left "foo"
+                   set -ag status-left "bar"
+
+             Will result in ‘foobar’.  And:
+
+                   set -g status-style "bg=red"
+                   set -ag status-style "fg=blue"
+
+             Will result in a red background _a_n_d blue foreground.  Without --aa,
+             the result would be the default background and a blue foreground.
 
              Available window options are listed under sseett--wwiinnddooww--ooppttiioonn.
 
@@ -1037,6 +1048,12 @@ OOPPTTIIOONNSS
              eexxiitt--uunnaattttaacchheedd [oonn | ooffff]
                      If enabled, the server will exit when there are no
                      attached clients.
+
+             ffooccuuss--eevveennttss [oonn | ooffff]
+                     When enabled, focus events are requested from the termi-
+                     nal if supported and passed through to applications run-
+                     ning in ttmmuuxx.  Attached clients should be detached and
+                     attached again after changing this option.
 
              qquuiieett [oonn | ooffff]
                      Enable or disable the display of various informational
@@ -1084,14 +1101,6 @@ OOPPTTIIOONNSS
                      be any sh(1) command.  The default is an empty string,
                      which instructs ttmmuuxx to create a login shell using the
                      value of the ddeeffaauulltt--sshheellll option.
-
-             ddeeffaauulltt--ppaatthh _p_a_t_h
-                     Set the default working directory for new panes.  If
-                     empty (the default), the working directory is determined
-                     from the process running in the active pane, from the
-                     command line environment or from the working directory
-                     where the session was created.  Otherwise the same
-                     options are available as for the --cc flag to nneeww--wwiinnddooww.
 
              ddeeffaauulltt--sshheellll _p_a_t_h
                      Specify the default shell.  This is used as the login
@@ -1159,38 +1168,41 @@ OOPPTTIIOONNSS
                      sessions would have locked.  This has no effect as a ses-
                      sion option; it must be set as a global option.
 
-             mmeessssaaggee--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line message attributes, where _a_t_t_r_i_b_u_t_e_s is
-                     either nnoonnee or a comma-delimited list of one or more of:
-                     bbrriigghhtt (or bboolldd), ddiimm, uunnddeerrssccoorree, bblliinnkk, rreevveerrssee,
-                     hhiiddddeenn, or iittaalliiccss.
+             mmeessssaaggee--ccoommmmaanndd--ssttyyllee _s_t_y_l_e
+                     Set status line message command style, where _s_t_y_l_e is a
+                     comma-separated list of characteristics to be specified.
 
-             mmeessssaaggee--bbgg _c_o_l_o_u_r
-                     Set status line message background colour, where _c_o_l_o_u_r
-                     is one of: bbllaacckk, rreedd, ggrreeeenn, yyeellllooww, bblluuee, mmaaggeennttaa,
-                     ccyyaann, wwhhiittee, aixterm bright variants (if supported:
-                     bbrriigghhttrreedd, bbrriigghhttggrreeeenn, and so on), ccoolloouurr00 to ccoolloouurr225555
-                     from the 256-colour set, ddeeffaauulltt, or a hexadecimal RGB
-                     string such as ‘#ffffff’, which chooses the closest match
-                     from the default 256-colour set.
+                     These may be ‘bg=colour’ to set the background colour,
+                     ‘fg=colour’ to set the foreground colour, and a list of
+                     attributes as specified below.
 
-             mmeessssaaggee--ccoommmmaanndd--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line message attributes when in command mode.
+                     The colour is one of: bbllaacckk, rreedd, ggrreeeenn, yyeellllooww, bblluuee,
+                     mmaaggeennttaa, ccyyaann, wwhhiittee, aixterm bright variants (if sup-
+                     ported: bbrriigghhttrreedd, bbrriigghhttggrreeeenn, and so on), ccoolloouurr00 to
+                     ccoolloouurr225555 from the 256-colour set, ddeeffaauulltt, or a hexadec-
+                     imal RGB string such as ‘#ffffff’, which chooses the
+                     closest match from the default 256-colour set.
 
-             mmeessssaaggee--ccoommmmaanndd--bbgg _c_o_l_o_u_r
-                     Set status line message background colour when in command
-                     mode.
+                     The attributes is either nnoonnee or a comma-delimited list
+                     of one or more of: bbrriigghhtt (or bboolldd), ddiimm, uunnddeerrssccoorree,
+                     bblliinnkk, rreevveerrssee, hhiiddddeenn, or iittaalliiccss, to turn an attribute
+                     on, or an attribute prefixed with ‘no’ to turn one off.
 
-             mmeessssaaggee--ccoommmmaanndd--ffgg _c_o_l_o_u_r
-                     Set status line message foreground colour when in command
-                     mode.
+                     Examples are:
 
-             mmeessssaaggee--ffgg _c_o_l_o_u_r
-                     Set status line message foreground colour.
+                           fg=yellow,bold,underscore,blink
+                           bg=black,fg=default,noreverse
+
+                     With the --aa flag to the sseett--ooppttiioonn command the new style
+                     is added otherwise the existing style is replaced.
 
              mmeessssaaggee--lliimmiitt _n_u_m_b_e_r
                      Set the number of error or information messages to save
                      in the message log for each client.  The default is 20.
+
+             mmeessssaaggee--ssttyyllee _s_t_y_l_e
+                     Set status line message style.  For how to specify _s_t_y_l_e,
+                     see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
 
              mmoouussee--rreessiizzee--ppaannee [oonn | ooffff]
                      If on, ttmmuuxx captures the mouse and allows panes to be
@@ -1210,16 +1222,15 @@ OOPPTTIIOONNSS
                      If enabled, request mouse input as UTF-8 on UTF-8 termi-
                      nals.
 
-             ppaannee--aaccttiivvee--bboorrddeerr--bbgg _c_o_l_o_u_r
+             ppaannee--aaccttiivvee--bboorrddeerr--ssttyyllee _s_t_y_l_e
+                     Set the pane border style for the currently active pane.
+                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.  Attributes are ignored.
 
-             ppaannee--aaccttiivvee--bboorrddeerr--ffgg _c_o_l_o_u_r
-                     Set the pane border colour for the currently active pane.
-
-             ppaannee--bboorrddeerr--bbgg _c_o_l_o_u_r
-
-             ppaannee--bboorrddeerr--ffgg _c_o_l_o_u_r
-                     Set the pane border colour for panes aside from the
-                     active pane.
+             ppaannee--bboorrddeerr--ssttyyllee _s_t_y_l_e
+                     Set the pane border style for paneas aside from the
+                     active pane.  For how to specify _s_t_y_l_e, see the
+                     mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.  Attributes are ignored.
 
              pprreeffiixx _k_e_y
                      Set the key accepted as a prefix key.
@@ -1265,15 +1276,6 @@ OOPPTTIIOONNSS
              ssttaattuuss [oonn | ooffff]
                      Show or hide the status line.
 
-             ssttaattuuss--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes.
-
-             ssttaattuuss--bbgg _c_o_l_o_u_r
-                     Set status line background colour.
-
-             ssttaattuuss--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour.
-
              ssttaattuuss--iinntteerrvvaall _i_n_t_e_r_v_a_l
                      Update the status bar every _i_n_t_e_r_v_a_l seconds.  By
                      default, updates will occur every 15 seconds.  A setting
@@ -1290,25 +1292,16 @@ OOPPTTIIOONNSS
                      and contain the string ‘vi’.
 
              ssttaattuuss--lleefftt _s_t_r_i_n_g
-                     Display _s_t_r_i_n_g to the left of the status bar.  _s_t_r_i_n_g
-                     will be passed through strftime(3) before being used.  By
-                     default, the session name is shown.  _s_t_r_i_n_g may contain
-                     any of the following special character sequences:
+                     Display _s_t_r_i_n_g (by default the session name) to the left
+                     of the status bar.  _s_t_r_i_n_g will be passed through
+                     strftime(3) and formats (see _F_O_R_M_A_T_S) will be expanded.
+                     It may also contain any of the following special charac-
+                     ter sequences:
 
                            CChhaarraacctteerr ppaaiirr    RReeppllaacceedd wwiitthh
                            #(shell-command)  First line of the command’s
                                                               output
                            #[attributes]     Colour or attribute change
-                           #H                Hostname of local host
-                           #h                Hostname of local host without
-                                                              the domain name
-                           #F                Current window flag
-                           #I                Current window index
-                           #D                Current pane unique identifier
-                           #P                Current pane index
-                           #S                Session name
-                           #T                Current pane title
-                           #W                Current window name
                            ##                A literal ‘#’
 
                      The #(shell-command) form executes ‘shell-command’ and
@@ -1320,15 +1313,10 @@ OOPPTTIIOONNSS
                      ment set (see the _E_N_V_I_R_O_N_M_E_N_T section).
 
                      For details on how the names and titles can be set see
-                     the _N_A_M_E_S _A_N_D _T_I_T_L_E_S section.
+                     the _N_A_M_E_S _A_N_D _T_I_T_L_E_S section.  For a list of allowed
+                     attributes see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
 
-                     #[attributes] allows a comma-separated list of attributes
-                     to be specified, these may be ‘fg=colour’ to set the
-                     foreground colour, ‘bg=colour’ to set the background
-                     colour, the name of one of the attributes (listed under
-                     the mmeessssaaggee--aattttrr option) to turn an attribute on, or an
-                     attribute prefixed with ‘no’ to turn one off, for example
-                     nnoobbrriigghhtt.  Examples are:
+                     Examples are:
 
                            #(sysctl vm.loadavg)
                            #[fg=yellow,bold]#(apm -l)%%#[default] [#S]
@@ -1340,20 +1328,14 @@ OOPPTTIIOONNSS
                      By default, UTF-8 in _s_t_r_i_n_g is not interpreted, to enable
                      UTF-8, use the ssttaattuuss--uuttff88 option.
 
-             ssttaattuuss--lleefftt--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set the attribute of the left part of the status line.
-
-             ssttaattuuss--lleefftt--bbgg _c_o_l_o_u_r
-                     Set the background colour of the left part of the status
-                     line.
-
-             ssttaattuuss--lleefftt--ffgg _c_o_l_o_u_r
-                     Set the foreground colour of the left part of the status
-                     line.
-
              ssttaattuuss--lleefftt--lleennggtthh _l_e_n_g_t_h
                      Set the maximum _l_e_n_g_t_h of the left component of the sta-
                      tus bar.  The default is 10.
+
+             ssttaattuuss--lleefftt--ssttyyllee _s_t_y_l_e
+                     Set the style of the left part of the status line.  For
+                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.
 
              ssttaattuuss--ppoossiittiioonn [ttoopp | bboottttoomm]
                      Set the position of the status line.
@@ -1366,20 +1348,18 @@ OOPPTTIIOONNSS
                      replaced, and UTF-8 is dependent on the ssttaattuuss--uuttff88
                      option.
 
-             ssttaattuuss--rriigghhtt--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set the attribute of the right part of the status line.
-
-             ssttaattuuss--rriigghhtt--bbgg _c_o_l_o_u_r
-                     Set the background colour of the right part of the status
-                     line.
-
-             ssttaattuuss--rriigghhtt--ffgg _c_o_l_o_u_r
-                     Set the foreground colour of the right part of the status
-                     line.
-
              ssttaattuuss--rriigghhtt--lleennggtthh _l_e_n_g_t_h
                      Set the maximum _l_e_n_g_t_h of the right component of the sta-
                      tus bar.  The default is 40.
+
+             ssttaattuuss--rriigghhtt--ssttyyllee _s_t_y_l_e
+                     Set the style of the right part of the status line.  For
+                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.
+
+             ssttaattuuss--ssttyyllee _s_t_y_l_e
+                     Set status line style.  For how to specify _s_t_y_l_e, see the
+                     mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
 
              ssttaattuuss--uuttff88 [oonn | ooffff]
                      Instruct ttmmuuxx to treat top-bit-set characters in the
@@ -1403,10 +1383,10 @@ OOPPTTIIOONNSS
 
                      The terminal entry value is passed through strunvis(3)
                      before interpretation.  The default value forcibly cor-
-                     rects the ‘colors’ entry for terminals which support 88
-                     or 256 colours:
+                     rects the ‘colors’ entry for terminals which support 256
+                     colours:
 
-                           "*88col*:colors=88,*256col*:colors=256,xterm*:XT"
+                           "*256col*:colors=256,xterm*:XT"
 
              uuppddaattee--eennvviirroonnmmeenntt _v_a_r_i_a_b_l_e_s
                      Set a space-separated string containing a list of envi-
@@ -1445,10 +1425,10 @@ OOPPTTIIOONNSS
                      previous word commands in copy mode.  The default is
                      ‘ -_@’.
 
-     sseett--wwiinnddooww--ooppttiioonn [--aaggqquu] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] _o_p_t_i_o_n _v_a_l_u_e
+     sseett--wwiinnddooww--ooppttiioonn [--aaggooqquu] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] _o_p_t_i_o_n _v_a_l_u_e
                    (alias: sseettww)
-             Set a window option.  The --aa, --gg, --qq and --uu flags work similarly
-             to the sseett--ooppttiioonn command.
+             Set a window option.  The --aa, --gg, --oo, --qq and --uu flags work simi-
+             larly to the sseett--ooppttiioonn command.
 
              Supported window options are:
 
@@ -1478,15 +1458,19 @@ OOPPTTIIOONNSS
 
              aauuttoommaattiicc--rreennaammee [oonn | ooffff]
                      Control automatic window renaming.  When this setting is
-                     enabled, ttmmuuxx will attempt - on supported platforms - to
-                     rename the window to reflect the command currently run-
-                     ning in it.  This flag is automatically disabled for an
-                     individual window when a name is specified at creation
-                     with nneeww--wwiinnddooww or nneeww--sseessssiioonn, or later with
-                     rreennaammee--wwiinnddooww, or with a terminal escape sequence.  It
-                     may be switched off globally with:
+                     enabled, ttmmuuxx will rename the window automatically using
+                     the format specified by aauuttoommaattiicc--rreennaammee--ffoorrmmaatt.  This
+                     flag is automatically disabled for an individual window
+                     when a name is specified at creation with nneeww--wwiinnddooww or
+                     nneeww--sseessssiioonn, or later with rreennaammee--wwiinnddooww, or with a ter-
+                     minal escape sequence.  It may be switched off globally
+                     with:
 
                            set-window-option -g automatic-rename off
+
+             aauuttoommaattiicc--rreennaammee--ffoorrmmaatt _f_o_r_m_a_t
+                     The format (see _F_O_R_M_A_T_S) used when the aauuttoommaattiicc--rreennaammee
+                     option is enabled.
 
              cc00--cchhaannggee--iinntteerrvvaall _i_n_t_e_r_v_a_l
              cc00--cchhaannggee--ttrriiggggeerr _t_r_i_g_g_e_r
@@ -1496,8 +1480,8 @@ OOPPTTIIOONNSS
                      returns, linefeeds or backspaces) in one millisecond, it
                      will stop updating the pane immediately and instead
                      redraw it entirely every _i_n_t_e_r_v_a_l milliseconds.  This
-                     helps to prevent fast output (such as yes(1) overwhelming
-                     the terminal).  The default is a trigger of 250 and an
+                     helps to prevent fast output (such as yes(1)) overwhelm-
+                     ing the terminal.  The default is a trigger of 250 and an
                      interval of 100.  A trigger of zero disables the rate
                      limiting.
 
@@ -1518,15 +1502,6 @@ OOPPTTIIOONNSS
                      Set the width or height of the main (left or top) pane in
                      the mmaaiinn--hhoorriizzoonnttaall or mmaaiinn--vveerrttiiccaall layouts.
 
-             mmooddee--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set window modes attributes.
-
-             mmooddee--bbgg _c_o_l_o_u_r
-                     Set window modes background colour.
-
-             mmooddee--ffgg _c_o_l_o_u_r
-                     Set window modes foreground colour.
-
              mmooddee--kkeeyyss [vvii | eemmaaccss]
                      Use vi or emacs-style key bindings in copy and choice
                      modes.  As with the ssttaattuuss--kkeeyyss option, the default is
@@ -1539,6 +1514,10 @@ OOPPTTIIOONNSS
                      select an option in choice mode.  If set to _c_o_p_y_-_m_o_d_e,
                      the mouse behaves as set to on, but cannot be used to
                      enter copy mode.
+
+             mmooddee--ssttyyllee _s_t_y_l_e
+                     Set window modes style.  For how to specify _s_t_y_l_e, see
+                     the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
 
              mmoonniittoorr--aaccttiivviittyy [oonn | ooffff]
                      Monitor for activity in the window.  Windows with activ-
@@ -1585,77 +1564,29 @@ OOPPTTIIOONNSS
                      Instructs ttmmuuxx to expect UTF-8 sequences to appear in
                      this window.
 
-             wwiinnddooww--ssttaattuuss--bbeellll--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes for windows which have a bell
-                     alert.
+             wwiinnddooww--ssttaattuuss--aaccttiivviittyy--ssttyyllee _s_t_y_l_e
+                     Set status line style for windows with an activity alert.
+                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.
 
-             wwiinnddooww--ssttaattuuss--bbeellll--bbgg _c_o_l_o_u_r
-                     Set status line background colour for windows with a bell
-                     alert.
+             wwiinnddooww--ssttaattuuss--bbeellll--ssttyyllee _s_t_y_l_e
+                     Set status line style for windows with a bell alert.  For
+                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.
 
-             wwiinnddooww--ssttaattuuss--bbeellll--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for windows with a bell
-                     alert.
-
-             wwiinnddooww--ssttaattuuss--ccoonntteenntt--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes for windows which have a con-
-                     tent alert.
-
-             wwiinnddooww--ssttaattuuss--ccoonntteenntt--bbgg _c_o_l_o_u_r
-                     Set status line background colour for windows with a con-
-                     tent alert.
-
-             wwiinnddooww--ssttaattuuss--ccoonntteenntt--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for windows with a con-
-                     tent alert.
-
-             wwiinnddooww--ssttaattuuss--aaccttiivviittyy--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes for windows which have an
-                     activity (or silence) alert.
-
-             wwiinnddooww--ssttaattuuss--aaccttiivviittyy--bbgg _c_o_l_o_u_r
-                     Set status line background colour for windows with an
-                     activity alert.
-
-             wwiinnddooww--ssttaattuuss--aaccttiivviittyy--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for windows with an
-                     activity alert.
-
-             wwiinnddooww--ssttaattuuss--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes for a single window.
-
-             wwiinnddooww--ssttaattuuss--bbgg _c_o_l_o_u_r
-                     Set status line background colour for a single window.
-
-             wwiinnddooww--ssttaattuuss--ccuurrrreenntt--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes for the currently active win-
-                     dow.
-
-             wwiinnddooww--ssttaattuuss--ccuurrrreenntt--bbgg _c_o_l_o_u_r
-                     Set status line background colour for the currently
-                     active window.
-
-             wwiinnddooww--ssttaattuuss--ccuurrrreenntt--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for the currently
-                     active window.
+             wwiinnddooww--ssttaattuuss--ccoonntteenntt--ssttyyllee _s_t_y_l_e
+                     Set status line style for windows with a content alert.
+                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.
 
              wwiinnddooww--ssttaattuuss--ccuurrrreenntt--ffoorrmmaatt _s_t_r_i_n_g
                      Like _w_i_n_d_o_w_-_s_t_a_t_u_s_-_f_o_r_m_a_t, but is the format used when
                      the window is the current window.
 
-             wwiinnddooww--ssttaattuuss--llaasstt--aattttrr _a_t_t_r_i_b_u_t_e_s
-                     Set status line attributes for the last active window.
-
-             wwiinnddooww--ssttaattuuss--llaasstt--bbgg _c_o_l_o_u_r
-                     Set status line background colour for the last active
-                     window.
-
-             wwiinnddooww--ssttaattuuss--llaasstt--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for the last active
-                     window.
-
-             wwiinnddooww--ssttaattuuss--ffgg _c_o_l_o_u_r
-                     Set status line foreground colour for a single window.
+             wwiinnddooww--ssttaattuuss--ccuurrrreenntt--ssttyyllee _s_t_y_l_e
+                     Set status line style for the currently active window.
+                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.
 
              wwiinnddooww--ssttaattuuss--ffoorrmmaatt _s_t_r_i_n_g
                      Set the format in which the window is displayed in the
@@ -1663,9 +1594,18 @@ OOPPTTIIOONNSS
                      details of special character sequences available.  The
                      default is ‘#I:#W#F’.
 
+             wwiinnddooww--ssttaattuuss--llaasstt--ssttyyllee _s_t_y_l_e
+                     Set status line style for the last active window.  For
+                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.
+
              wwiinnddooww--ssttaattuuss--sseeppaarraattoorr _s_t_r_i_n_g
                      Sets the separator drawn between windows in the status
                      line.  The default is a single space character.
+
+             wwiinnddooww--ssttaattuuss--ssttyyllee _s_t_y_l_e
+                     Set status line style for a single window.  For how to
+                     specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
 
              xxtteerrmm--kkeeyyss [oonn | ooffff]
                      If this option is set, ttmmuuxx will generate xterm(1) -style
@@ -1694,96 +1634,101 @@ OOPPTTIIOONNSS
 
 FFOORRMMAATTSS
      Certain commands accept the --FF flag with a _f_o_r_m_a_t argument.  This is a
-     string which controls the output format of the command.  Special charac-
-     ter sequences are replaced as documented under the ssttaattuuss--lleefftt option and
-     an additional long form is accepted.  Replacement variables are enclosed
-     in ‘#{’ and ‘}’, for example ‘#{session_name}’ is equivalent to ‘#S’.
-     Conditionals are also accepted by prefixing with ‘?’ and separating two
-     alternatives with a comma; if the specified variable exists and is not
-     zero, the first alternative is chosen, otherwise the second is used.  For
-     example ‘#{?session_attached,attached,not attached}’ will include the
-     string ‘attached’ if the session is attached and the string ‘not
-     attached’ if it is unattached.
+     string which controls the output format of the command.  Replacement
+     variables are enclosed in ‘#{’ and ‘}’, for example ‘#{session_name}’.
+     Some variables also have an shorter alias such as ‘#S’.  ‘##’ is replaced
+     by a single ‘#’.  Conditionals are also accepted by prefixing with ‘?’
+     and separating two alternatives with a comma; if the specified variable
+     exists and is not zero, the first alternative is chosen, otherwise the
+     second is used.  For example ‘#{?session_attached,attached,not attached}’
+     will include the string ‘attached’ if the session is attached and the
+     string ‘not attached’ if it is unattached.  A limit may be placed on the
+     length of the resultant string by prefixing it by an ‘=’, a number and a
+     colon, so ‘#{=10:pane_title}’ will include at most the first 10 charac-
+     ters of the pane title.
 
      The following variables are available, where appropriate:
 
-           VVaarriiaabbllee nnaammee             RReeppllaacceedd wwiitthh
-           alternate_on              If pane is in alternate screen
-           alternate_saved_x         Saved cursor X in alternate screen
-           alternate_saved_y         Saved cursor Y in alternate screen
-           buffer_sample             First 50 characters from the specified
-                                                      buffer
-           buffer_size               Size of the specified buffer in bytes
-           client_activity           Integer time client last had activity
-           client_activity_string    String time client last had activity
-           client_created            Integer time client created
-           client_created_string     String time client created
-           client_cwd                Working directory of client
-           client_height             Height of client
-           client_last_session       Name of the client’s last session
-           client_prefix             1 if prefix key has been pressed
-           client_readonly           1 if client is readonly
-           client_session            Name of the client’s session
-           client_termname           Terminal name of client
-           client_tty                Pseudo terminal of client
-           client_utf8               1 if client supports utf8
-           client_width              Width of client
-           cursor_flag               Pane cursor flag
-           cursor_x                  Cursor X position in pane
-           cursor_y                  Cursor Y position in pane
-           history_bytes             Number of bytes in window history
-           history_limit             Maximum window history lines
-           history_size              Size of history in bytes
-           host                      Hostname of local host
-           insert_flag               Pane insert flag
-           keypad_cursor_flag        Pane keypad cursor flag
-           keypad_flag               Pane keypad flag
-           line                      Line number in the list
-           mouse_any_flag            Pane mouse any flag
-           mouse_button_flag         Pane mouse button flag
-           mouse_standard_flag       Pane mouse standard flag
-           mouse_utf8_flag           Pane mouse UTF-8 flag
-           pane_active               1 if active pane
-           pane_current_command      Current command if available
-           pane_current_path         Current path if available
-           pane_dead                 1 if pane is dead
-           pane_height               Height of pane
-           pane_id                   Unique pane ID
-           pane_in_mode              If pane is in a mode
-           pane_index                Index of pane
-           pane_pid                  PID of first process in pane
-           pane_start_command        Command pane started with
-           pane_start_path           Path pane started with
-           pane_tabs                 Pane tab positions
-           pane_title                Title of pane
-           pane_tty                  Pseudo terminal of pane
-           pane_width                Width of pane
-           saved_cursor_x            Saved cursor X in pane
-           saved_cursor_y            Saved cursor Y in pane
-           scroll_region_lower       Bottom of scroll region in pane
-           scroll_region_upper       Top of scroll region in pane
-           session_attached          1 if session attached
-           session_created           Integer time session created
-           session_created_string    String time session created
-           session_group             Number of session group
-           session_grouped           1 if session in a group
-           session_height            Height of session
-           session_id                Unique session ID
-           session_name              Name of session
-           session_width             Width of session
-           session_windows           Number of windows in session
-           window_active             1 if window active
-           window_find_matches       Matched data from the find-window command
-                                                      if available
-           window_flags              Window flags
-           window_height             Height of window
-           window_id                 Unique window ID
-           window_index              Index of window
-           window_layout             Window layout description
-           window_name               Name of window
-           window_panes              Number of panes in window
-           window_width              Width of window
-           wrap_flag                 Pane wrap flag
+     VVaarriiaabbllee nnaammee          AAlliiaass    RReeppllaacceedd wwiitthh
+     alternate_on                    If pane is in alternate screen
+     alternate_saved_x               Saved cursor X in alternate screen
+     alternate_saved_y               Saved cursor Y in alternate screen
+     buffer_sample                   First 50 characters from buffer
+     buffer_size                     Size of the specified buffer in bytes
+     client_activity                 Integer time client last had activity
+     client_activity_string          String time client last had activity
+     client_created                  Integer time client created
+     client_created_string           String time client created
+     client_height                   Height of client
+     client_last_session             Name of the client’s last session
+     client_prefix                   1 if prefix key has been pressed
+     client_readonly                 1 if client is readonly
+     client_session                  Name of the client’s session
+     client_termname                 Terminal name of client
+     client_tty                      Pseudo terminal of client
+     client_utf8                     1 if client supports utf8
+     client_width                    Width of client
+     cursor_flag                     Pane cursor flag
+     cursor_x                        Cursor X position in pane
+     cursor_y                        Cursor Y position in pane
+     history_bytes                   Number of bytes in window history
+     history_limit                   Maximum window history lines
+     history_size                    Size of history in bytes
+     host                   #H       Hostname of local host
+     host_short             #h       Hostname of local host (no domain name)
+     insert_flag                     Pane insert flag
+     keypad_cursor_flag              Pane keypad cursor flag
+     keypad_flag                     Pane keypad flag
+     line                            Line number in the list
+     mouse_any_flag                  Pane mouse any flag
+     mouse_button_flag               Pane mouse button flag
+     mouse_standard_flag             Pane mouse standard flag
+     mouse_utf8_flag                 Pane mouse UTF-8 flag
+     pane_active                     1 if active pane
+     pane_current_command            Current command if available
+     pane_current_path               Current path if available
+     pane_dead                       1 if pane is dead
+     pane_height                     Height of pane
+     pane_id                #D       Unique pane ID
+     pane_in_mode                    If pane is in a mode
+     pane_synchronized               If pane is synchronized
+     pane_index             #P       Index of pane
+     pane_pid                        PID of first process in pane
+     pane_start_command              Command pane started with
+     pane_start_path                 Path pane started with
+     pane_tabs                       Pane tab positions
+     pane_title             #T       Title of pane
+     pane_tty                        Pseudo terminal of pane
+     pane_width                      Width of pane
+     saved_cursor_x                  Saved cursor X in pane
+     saved_cursor_y                  Saved cursor Y in pane
+     scroll_region_lower             Bottom of scroll region in pane
+     scroll_region_upper             Top of scroll region in pane
+     session_attached                1 if session attached
+     session_created                 Integer time session created
+     session_created_string          String time session created
+     session_group                   Number of session group
+     session_grouped                 1 if session in a group
+     session_height                  Height of session
+     session_id                      Unique session ID
+     session_name           #S       Name of session
+     session_width                   Width of session
+     session_windows                 Number of windows in session
+     window_active                   1 if window active
+     window_activity_flag            1 if window has activity alert
+     window_bell_flag                1 if window has bell
+     window_content_flag             1 if window has content alert
+     window_find_matches             Matched data from the find-window
+     window_flags           #F       Window flags
+     window_height                   Height of window
+     window_id                       Unique window ID
+     window_index           #I       Index of window
+     window_layout                   Window layout description
+     window_name            #W       Name of window
+     window_panes                    Number of panes in window
+     window_silence_flag             1 if window has silence alert
+     window_width                    Width of window
+     wrap_flag                       Pane wrap flag
 
 NNAAMMEESS AANNDD TTIITTLLEESS
      ttmmuuxx distinguishes between names and titles.  Windows and sessions have
@@ -1876,9 +1821,8 @@ SSTTAATTUUSS LLIINNEE
      alert (bell, activity or content) is present.
 
      The colour and attributes of the status line may be configured, the
-     entire status line using the ssttaattuuss--aattttrr, ssttaattuuss--ffgg and ssttaattuuss--bbgg session
-     options and individual windows using the wwiinnddooww--ssttaattuuss--aattttrr,
-     wwiinnddooww--ssttaattuuss--ffgg and wwiinnddooww--ssttaattuuss--bbgg window options.
+     entire status line using the ssttaattuuss--ssttyyllee session option and individual
+     windows using the wwiinnddooww--ssttaattuuss--ssttyyllee window option.
 
      The status line is automatically refreshed at interval if it has changed,
      the interval may be controlled with the ssttaattuuss--iinntteerrvvaall session option.
@@ -2007,7 +1951,7 @@ MMIISSCCEELLLLAANNEEOOUUSS
              Lock each client individually by running the command specified by
              the lloocckk--ccoommmmaanndd option.
 
-     rruunn--sshheellll --bb [--tt _t_a_r_g_e_t_-_p_a_n_e] _s_h_e_l_l_-_c_o_m_m_a_n_d
+     rruunn--sshheellll [--bb] [--tt _t_a_r_g_e_t_-_p_a_n_e] _s_h_e_l_l_-_c_o_m_m_a_n_d
                    (alias: rruunn)
              Execute _s_h_e_l_l_-_c_o_m_m_a_n_d in the background without creating a win-
              dow.  Before being executed, shell-command is expanded using the
@@ -2017,11 +1961,7 @@ MMIISSCCEELLLLAANNEEOOUUSS
              current pane if omitted).  If the command doesn’t return success,
              the exit status is also displayed.
 
-     sseerrvveerr--iinnffoo
-                   (alias: iinnffoo)
-             Show server information and terminal details.
-
-     wwaaiitt--ffoorr --LLSSUU _c_h_a_n_n_e_l
+     wwaaiitt--ffoorr [--LL | --SS | --UU] _c_h_a_n_n_e_l
                    (alias: wwaaiitt)
              When used without options, prevents the client from exiting until
              woken using wwaaiitt--ffoorr --SS with the same channel.  When --LL is used,
@@ -2032,15 +1972,14 @@ MMIISSCCEELLLLAANNEEOOUUSS
 TTEERRMMIINNFFOO EEXXTTEENNSSIIOONNSS
      ttmmuuxx understands some extensions to terminfo(5):
 
-     _C_c, _C_r  Set the cursor colour.  The first takes a single string argument
+     _C_s, _C_r  Set the cursor colour.  The first takes a single string argument
              and is used to set the colour; the second takes no arguments and
              restores the default cursor colour.  If set, a sequence such as
              this may be used to change the cursor colour from inside ttmmuuxx:
 
                    $ printf ’\033]12;red\033\\’
 
-     _C_s, _C_s_r
-             Change the cursor style.  If set, a sequence such as this may be
+     _S_s, _S_e  Change the cursor style.  If set, a sequence such as this may be
              used to change the cursor to an underline:
 
                    $ printf ’\033[4 q’
@@ -2109,8 +2048,8 @@ CCOONNTTRROOLL MMOODDEE
              The window with ID _w_i_n_d_o_w_-_i_d was renamed to _n_a_m_e.
 
 FFIILLEESS
-     ~/.tmux.conf       Default ttmmuuxx configuration file.
-     /etc/tmux.conf     System-wide configuration file.
+     ~/.tmux.conf               Default ttmmuuxx configuration file.
+     @SYSCONFDIR@/tmux.conf     System-wide configuration file.
 
 EEXXAAMMPPLLEESS
      To create a new ttmmuuxx session running vi(1):
@@ -2155,7 +2094,7 @@ EEXXAAMMPPLLEESS
      Turning the status line off, or changing its colour:
 
            set-option -g status off
-           set-option -g status-bg blue
+           set-option -g status-style bg=blue
 
      Setting other options, such as the default command, or locking after 30
      minutes of inactivity:
@@ -2173,6 +2112,6 @@ SSEEEE AALLSSOO
      pty(4)
 
 AAUUTTHHOORRSS
-     Nicholas Marriott 〈nicm@users.sourceforge.net〉
+     Nicholas Marriott 〈_n_i_c_m_@_u_s_e_r_s_._s_o_u_r_c_e_f_o_r_g_e_._n_e_t〉
 
 BSD                            December 4, 2019                            BSD
