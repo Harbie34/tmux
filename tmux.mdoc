@@ -80,9 +80,6 @@ DDEESSCCRRIIPPTTIIOONN
                    and is for compatibility with other shells when using tmux
                    as a login shell.
 
-     --qq            Set the qquuiieett server option to prevent the server sending
-                   various informational messages.
-
      --SS _s_o_c_k_e_t_-_p_a_t_h
                    Specify a full alternative path to the server socket.  If
                    --SS is specified, the default socket directory is not used
@@ -128,6 +125,8 @@ KKEEYY BBIINNDDIINNGGSS
            %           Split the current pane into two, left and right.
            &           Kill the current window.
            ’           Prompt for a window index to select.
+           (           Switch the attached client to the previous session.
+           )           Switch the attached client to the next session.
            ,           Rename the current window.
            -           Delete the most recently copied buffer of text.
            .           Prompt for an index to move the current window.
@@ -137,6 +136,7 @@ KKEEYY BBIINNDDIINNGGSS
            =           Choose which buffer to paste interactively from a list.
            ?           List all key bindings.
            D           Choose a client to detach.
+           L           Switch the attached client back to the last session.
            [           Enter copy mode to copy text or view the history.
            ]           Paste the most recently copied buffer of text.
            c           Create a new window.
@@ -151,10 +151,10 @@ KKEEYY BBIINNDDIINNGGSS
            r           Force redraw of the attached client.
            s           Select a new session for the attached client interac-
                        tively.
-           L           Switch the attached client back to the last session.
            t           Show the time.
            w           Choose the current window interactively.
            x           Kill the current pane.
+           z           Toggle zoom state of the current pane.
            {           Swap the current pane with the previous pane.
            }           Swap the current pane with the next pane.
            ~           Show previous messages from ttmmuuxx, if any.
@@ -166,6 +166,7 @@ KKEEYY BBIINNDDIINNGGSS
            M-1 to M-5  Arrange panes in one of the five preset layouts: even-
                        horizontal, even-vertical, main-horizontal, main-verti-
                        cal, or tiled.
+           Space       Arrange the current window in the next preset layout.
            M-n         Move to the next window with a bell or activity marker.
            M-o         Rotate the panes in the current window backwards.
            M-p         Move to the previous window with a bell or activity
@@ -219,8 +220,8 @@ CCOOMMMMAANNDDSS
      sion:mywindow.1.  If the pane index is omitted, the currently active pane
      in the specified window is used.  If neither a colon nor period appears,
      ttmmuuxx first attempts to use the argument as a pane index; if that fails,
-     it is looked up as for _t_a_r_g_e_t_-_w_i_n_d_o_w.  A ‘+’ or ‘-’ indicate the next or
-     previous pane index, respectively.  One of the strings _t_o_p, _b_o_t_t_o_m, _l_e_f_t,
+     it is looked up as for _t_a_r_g_e_t_-_w_i_n_d_o_w.  A ‘+’, ‘-’ or ‘!’ indicate the
+     next, previous or last pane.  One of the strings _t_o_p, _b_o_t_t_o_m, _l_e_f_t,
      _r_i_g_h_t, _t_o_p_-_l_e_f_t, _t_o_p_-_r_i_g_h_t, _b_o_t_t_o_m_-_l_e_f_t or _b_o_t_t_o_m_-_r_i_g_h_t may be used
      instead of a pane index.
 
@@ -238,10 +239,23 @@ CCOOMMMMAANNDDSS
      pane in the TMUX_PANE environment variable.  It may be used alone to tar-
      get a pane or the window containing it.
 
-     _s_h_e_l_l_-_c_o_m_m_a_n_d arguments are sh(1) commands.  These must be passed as a
-     single item, which typically means quoting them, for example:
+     _s_h_e_l_l_-_c_o_m_m_a_n_d arguments are sh(1) commands.  This may be a single argu-
+     ment passed to the shell, for example:
 
            new-window ’vi /etc/passwd’
+
+     Will run:
+
+           /bin/sh -c ’vi /etc/passwd’
+
+     Additionally, the nneeww--wwiinnddooww, nneeww--sseessssiioonn, sspplliitt--wwiinnddooww, rreessppaawwnn--wwiinnddooww
+     and rreessppaawwnn--ppaannee commands allow _s_h_e_l_l_-_c_o_m_m_a_n_d to be given as multiple
+     arguments and executed directly (without ‘sh -c’).  This can avoid issues
+     with shell quoting.  For example:
+
+           $ tmux new-window vi /etc/passwd
+
+     Will run vi(1) directly without invoking the shell.
 
      _c_o_m_m_a_n_d [_a_r_g_u_m_e_n_t_s] refers to a ttmmuuxx command, passed with the command and
      arguments separately, for example:
@@ -403,10 +417,10 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
                    (alias: sshhoowwmmssggss)
              Show client messages or server information.  Any messages dis-
              played on the status line are saved in a per-client message log,
-             up to a maximum of the limit set by the _m_e_s_s_a_g_e_-_l_i_m_i_t session
-             option for the session attached to that client.  With --tt, display
-             the log for _t_a_r_g_e_t_-_c_l_i_e_n_t.  --II, --JJ and --TT show debugging informa-
-             tion about the running server, jobs and terminals.
+             up to a maximum of the limit set by the _m_e_s_s_a_g_e_-_l_i_m_i_t server
+             option.  With --tt, display the log for _t_a_r_g_e_t_-_c_l_i_e_n_t.  --II, --JJ and
+             --TT show debugging information about the running server, jobs and
+             terminals.
 
      ssoouurrccee--ffiillee _p_a_t_h
                    (alias: ssoouurrccee)
@@ -442,10 +456,12 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
      for the mode:
 
            FFuunnccttiioonn                     vvii              eemmaaccss
+           Append selection             A
            Back to indentation          ^               M-m
            Bottom of history            G               M-<
            Clear selection              Escape          C-g
            Copy selection               Enter           M-w
+           Copy to named buffer         "
            Cursor down                  j               Down
            Cursor left                  h               Left
            Cursor right                 l               Right
@@ -459,12 +475,12 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            Go to line                   :               g
            Half page down               C-d             M-Down
            Half page up                 C-u             M-Up
-           Jump forward                 f               f
-           Jump to forward              t
-           Jump backward                F               F
-           Jump to backward             T
            Jump again                   ;               ;
            Jump again in reverse        ,               ,
+           Jump backward                F               F
+           Jump forward                 f               f
+           Jump to backward             T
+           Jump to forward              t
            Next page                    C-f             Page down
            Next space                   W
            Next space, end of word      E
@@ -473,8 +489,8 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            Other end of selection       o
            Paste buffer                 p               C-y
            Previous page                C-b             Page up
-           Previous word                b               M-b
            Previous space               B
+           Previous word                b               M-b
            Quit mode                    q               Escape
            Rectangle toggle             v               R
            Scroll down                  C-Down or C-e   C-Down
@@ -483,6 +499,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
            Search again in reverse      N               N
            Search backward              ?               C-r
            Search forward               /               C-s
+           Select line                  V
            Start of line                0               C-a
            Start selection              Space           C-Space
            Top of history               g               M->
@@ -504,9 +521,6 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
      the Alt (meta) key and a number begins prefix entry.  For example, to
      move the cursor forward by ten words, use ‘M-1 0 M-f’ in emacs mode, and
      ‘10w’ in vi.
-
-     When copying the selection, the repeat count indicates the buffer index
-     to replace, if used.
 
      Mode key bindings are defined in a set of named tables: _v_i_-_e_d_i_t and
      _e_m_a_c_s_-_e_d_i_t for keys used when line editing at the command prompt;
@@ -589,7 +603,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              uses the format ‘#{session_name}:#{window_index}’ but a different
              format may be specified with --FF.
 
-     ccaappttuurree--ppaannee [--aaeeppPPqq] [--bb _b_u_f_f_e_r_-_i_n_d_e_x] [--EE _e_n_d_-_l_i_n_e] [--SS _s_t_a_r_t_-_l_i_n_e] [--tt
+     ccaappttuurree--ppaannee [--aaeeppPPqq] [--bb _b_u_f_f_e_r_-_n_a_m_e] [--EE _e_n_d_-_l_i_n_e] [--SS _s_t_a_r_t_-_l_i_n_e] [--tt
              _t_a_r_g_e_t_-_p_a_n_e]
                    (alias: ccaappttuurreepp)
              Capture the contents of a pane.  If --pp is given, the output goes
@@ -606,8 +620,9 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
 
              --SS and --EE specify the starting and ending line numbers, zero is
              the first line of the visible pane and negative numbers are lines
-             in the history.  The default is to capture only the visible con-
-             tents of the pane.
+             in the history.  ‘-’ to --SS is the start of the history and to --EE
+             the end of the visible pane.  The default is to capture only the
+             visible contents of the pane.
 
      cchhoooossee--cclliieenntt [--FF _f_o_r_m_a_t] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] [_t_e_m_p_l_a_t_e]
              Put a window into client choice mode, allowing a client to be
@@ -615,17 +630,6 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              ‘%%’ is replaced by the client pty(7) path in _t_e_m_p_l_a_t_e and the
              result executed as a command.  If _t_e_m_p_l_a_t_e is not given, "detach-
              client -t ’%%’" is used.  For the meaning of the --FF flag, see the
-             _F_O_R_M_A_T_S section.  This command works only if at least one client
-             is attached.
-
-     cchhoooossee--lliisstt [--ll _i_t_e_m_s] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] [_t_e_m_p_l_a_t_e]
-             Put a window into list choice mode, allowing _i_t_e_m_s to be
-             selected.  _i_t_e_m_s can be a comma-separated list to display more
-             than one item.  If an item has spaces, that entry must be quoted.
-             After an item is chosen, ‘%%’ is replaced by the chosen item in
-             the _t_e_m_p_l_a_t_e and the result is executed as a command.  If
-             _t_e_m_p_l_a_t_e is not given, "run-shell ’%%’" is used.  _i_t_e_m_s also
-             accepts format specifiers.  For the meaning of this see the
              _F_O_R_M_A_T_S section.  This command works only if at least one client
              is attached.
 
@@ -680,7 +684,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              client is attached.
 
      ddiissppllaayy--ppaanneess [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
-                   (alias: ddiissppllaayypp))
+                   (alias: ddiissppllaayypp)
              Display a visible indicator of each pane shown by _t_a_r_g_e_t_-_c_l_i_e_n_t.
              See the ddiissppllaayy--ppaanneess--ttiimmee, ddiissppllaayy--ppaanneess--ccoolloouurr, and
              ddiissppllaayy--ppaanneess--aaccttiivvee--ccoolloouurr session options.  While the indicator
@@ -716,9 +720,10 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              it from any sessions to which it is linked.  The --aa option kills
              all but the window given with --tt.
 
-     llaasstt--ppaannee [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w]
+     llaasstt--ppaannee [--ddee] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w]
                    (alias: llaassttpp)
-             Select the last (previously selected) pane.
+             Select the last (previously selected) pane.  --ee enables or --dd
+             disables input to the pane.
 
      llaasstt--wwiinnddooww [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: llaasstt)
@@ -862,12 +867,13 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              --pp are equivalent to the nneexxtt--llaayyoouutt and pprreevviioouuss--llaayyoouutt com-
              mands.
 
-     sseelleecctt--ppaannee [--llDDLLRRUU] [--tt _t_a_r_g_e_t_-_p_a_n_e]
+     sseelleecctt--ppaannee [--DDddeeLLllRRUU] [--tt _t_a_r_g_e_t_-_p_a_n_e]
                    (alias: sseelleeccttpp)
              Make pane _t_a_r_g_e_t_-_p_a_n_e the active pane in window _t_a_r_g_e_t_-_w_i_n_d_o_w.
              If one of --DD, --LL, --RR, or --UU is used, respectively the pane below,
              to the left, to the right, or above the target pane is used.  --ll
-             is the same as using the llaasstt--ppaannee command.
+             is the same as using the llaasstt--ppaannee command.  --ee enables or --dd
+             disables input to the pane.
 
      sseelleecctt--wwiinnddooww [--llnnppTT] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w]
                    (alias: sseelleeccttww)
@@ -876,15 +882,17 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              --TT is given and the selected window is already the current win-
              dow, the command behaves like llaasstt--wwiinnddooww.
 
-     sspplliitt--wwiinnddooww [--ddhhvvPP] [--cc _s_t_a_r_t_-_d_i_r_e_c_t_o_r_y] [--ll _s_i_z_e | --pp _p_e_r_c_e_n_t_a_g_e] [--tt
+     sspplliitt--wwiinnddooww [--bbddhhvvPP] [--cc _s_t_a_r_t_-_d_i_r_e_c_t_o_r_y] [--ll _s_i_z_e | --pp _p_e_r_c_e_n_t_a_g_e] [--tt
              _t_a_r_g_e_t_-_p_a_n_e] [_s_h_e_l_l_-_c_o_m_m_a_n_d] [--FF _f_o_r_m_a_t]
                    (alias: sspplliittww)
              Create a new pane by splitting _t_a_r_g_e_t_-_p_a_n_e: --hh does a horizontal
              split and --vv a vertical split; if neither is specified, --vv is
              assumed.  The --ll and --pp options specify the size of the new pane
              in lines (for vertical split) or in cells (for horizontal split),
-             or as a percentage, respectively.  All other options have the
-             same meaning as for the nneeww--wwiinnddooww command.
+             or as a percentage, respectively.  The --bb option causes the new
+             pane to be created to the left of or above _t_a_r_g_e_t_-_p_a_n_e.  All
+             other options have the same meaning as for the nneeww--wwiinnddooww com-
+             mand.
 
      sswwaapp--ppaannee [--ddDDUU] [--ss _s_r_c_-_p_a_n_e] [--tt _d_s_t_-_p_a_n_e]
                    (alias: sswwaapppp)
@@ -912,7 +920,7 @@ KKEEYY BBIINNDDIINNGGSS
      ‘Z’).  Ctrl keys may be prefixed with ‘C-’ or ‘^’, and Alt (meta) with
      ‘M-’.  In addition, the following special key names are accepted: _U_p,
      _D_o_w_n, _L_e_f_t, _R_i_g_h_t, _B_S_p_a_c_e, _B_T_a_b, _D_C (Delete), _E_n_d, _E_n_t_e_r, _E_s_c_a_p_e, _F_1 to
-     _F_2_0, _H_o_m_e, _I_C (Insert), _N_P_a_g_e_/_P_a_g_e_D_o_w_n_/_P_g_D_n, _P_P_a_g_e_/_P_a_g_e_U_p_/_P_g_U_p, _S_p_a_c_e,
+     _F_1_2, _H_o_m_e, _I_C (Insert), _N_P_a_g_e_/_P_a_g_e_D_o_w_n_/_P_g_D_n, _P_P_a_g_e_/_P_a_g_e_U_p_/_P_g_U_p, _S_p_a_c_e,
      and _T_a_b.  Note that to bind the ‘"’ or ‘’’ keys, quotation marks are nec-
      essary, for example:
 
@@ -921,7 +929,7 @@ KKEEYY BBIINNDDIINNGGSS
 
      Commands related to key bindings are as follows:
 
-     bbiinndd--kkeeyy [--ccnnrr] [--tt _k_e_y_-_t_a_b_l_e] _k_e_y _c_o_m_m_a_n_d [_a_r_g_u_m_e_n_t_s]
+     bbiinndd--kkeeyy [--ccnnrr] [--tt _m_o_d_e_-_t_a_b_l_e] _k_e_y _c_o_m_m_a_n_d [_a_r_g_u_m_e_n_t_s]
                    (alias: bbiinndd)
              Bind key _k_e_y to _c_o_m_m_a_n_d.  By default (without --tt) the primary key
              bindings are modified (those normally activated with the prefix
@@ -929,8 +937,8 @@ KKEEYY BBIINNDDIINNGGSS
              use the prefix key, _c_o_m_m_a_n_d is bound to _k_e_y alone.  The --rr flag
              indicates this key may repeat, see the rreeppeeaatt--ttiimmee option.
 
-             If --tt is present, _k_e_y is bound in _k_e_y_-_t_a_b_l_e: the binding for com-
-             mand mode with --cc or for normal mode without.  To view the
+             If --tt is present, _k_e_y is bound in _m_o_d_e_-_t_a_b_l_e: the binding for
+             command mode with --cc or for normal mode without.  To view the
              default bindings and possible commands, see the lliisstt--kkeeyyss com-
              mand.
 
@@ -956,14 +964,14 @@ KKEEYY BBIINNDDIINNGGSS
              Send the prefix key, or with --22 the secondary prefix key, to a
              window as if it was pressed.
 
-     uunnbbiinndd--kkeeyy [--aaccnn] [--tt _k_e_y_-_t_a_b_l_e] _k_e_y
+     uunnbbiinndd--kkeeyy [--aaccnn] [--tt _m_o_d_e_-_t_a_b_l_e] _k_e_y
                    (alias: uunnbbiinndd)
              Unbind the command bound to _k_e_y.  Without --tt the primary key
              bindings are modified; in this case, if --nn is specified, the com-
              mand bound to _k_e_y without a prefix (if any) is removed.  If --aa is
              present, all key bindings are removed.
 
-             If --tt is present, _k_e_y in _k_e_y_-_t_a_b_l_e is unbound: the binding for
+             If --tt is present, _k_e_y in _m_o_d_e_-_t_a_b_l_e is unbound: the binding for
              command mode with --cc or for normal mode without.
 
 OOPPTTIIOONNSS
@@ -1010,8 +1018,7 @@ OOPPTTIIOONNSS
 
              The --oo flag prevents setting an option that is already set.
 
-             The --qq flag suppresses the informational message (as if the qquuiieett
-             server option was set).
+             The --qq flag suppresses errors about unknown options.
 
              With --aa, and if the option expects a string or a style, _v_a_l_u_e is
              appended to the existing setting.  For example:
@@ -1055,9 +1062,9 @@ OOPPTTIIOONNSS
                      ning in ttmmuuxx.  Attached clients should be detached and
                      attached again after changing this option.
 
-             qquuiieett [oonn | ooffff]
-                     Enable or disable the display of various informational
-                     messages (see also the --qq command line flag).
+             mmeessssaaggee--lliimmiitt _n_u_m_b_e_r
+                     Set the number of error or information messages to save
+                     in the message log for each client.  The default is 100.
 
              sseett--cclliippbbooaarrdd [oonn | ooffff]
                      Attempt to set the terminal clipboard content using the
@@ -1071,6 +1078,27 @@ OOPPTTIIOONNSS
 
                      Or changing this property from the xterm(1) interactive
                      menu when required.
+
+             tteerrmmiinnaall--oovveerrrriiddeess _s_t_r_i_n_g
+                     Contains a list of entries which override terminal
+                     descriptions read using terminfo(5).  _s_t_r_i_n_g is a comma-
+                     separated list of items each a colon-separated string
+                     made up of a terminal type pattern (matched using
+                     fnmatch(3)) and a set of _n_a_m_e_=_v_a_l_u_e entries.
+
+                     For example, to set the ‘clear’ terminfo(5) entry to
+                     ‘\e[H\e[2J’ for all terminal types and the ‘dch1’ entry
+                     to ‘\e[P’ for the ‘rxvt’ terminal type, the option could
+                     be set to the string:
+
+                           "*:clear=\e[H\e[2J,rxvt:dch1=\e[P"
+
+                     The terminal entry value is passed through strunvis(3)
+                     before interpretation.  The default value forcibly cor-
+                     rects the ‘colors’ entry for terminals which support 256
+                     colours:
+
+                           "*256col*:colors=256,xterm*:XT"
 
              Available session options are:
 
@@ -1196,10 +1224,6 @@ OOPPTTIIOONNSS
                      With the --aa flag to the sseett--ooppttiioonn command the new style
                      is added otherwise the existing style is replaced.
 
-             mmeessssaaggee--lliimmiitt _n_u_m_b_e_r
-                     Set the number of error or information messages to save
-                     in the message log for each client.  The default is 20.
-
              mmeessssaaggee--ssttyyllee _s_t_y_l_e
                      Set status line message style.  For how to specify _s_t_y_l_e,
                      see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
@@ -1221,16 +1245,6 @@ OOPPTTIIOONNSS
              mmoouussee--uuttff88 [oonn | ooffff]
                      If enabled, request mouse input as UTF-8 on UTF-8 termi-
                      nals.
-
-             ppaannee--aaccttiivvee--bboorrddeerr--ssttyyllee _s_t_y_l_e
-                     Set the pane border style for the currently active pane.
-                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.  Attributes are ignored.
-
-             ppaannee--bboorrddeerr--ssttyyllee _s_t_y_l_e
-                     Set the pane border style for paneas aside from the
-                     active pane.  For how to specify _s_t_y_l_e, see the
-                     mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.  Attributes are ignored.
 
              pprreeffiixx _k_e_y
                      Set the key accepted as a prefix key.
@@ -1321,12 +1335,10 @@ OOPPTTIIOONNSS
                            #(sysctl vm.loadavg)
                            #[fg=yellow,bold]#(apm -l)%%#[default] [#S]
 
-                     Where appropriate, special character sequences may be
-                     prefixed with a number to specify the maximum length, for
-                     example ‘#24T’.
-
                      By default, UTF-8 in _s_t_r_i_n_g is not interpreted, to enable
                      UTF-8, use the ssttaattuuss--uuttff88 option.
+
+                     The default is ‘[#S] ’.
 
              ssttaattuuss--lleefftt--lleennggtthh _l_e_n_g_t_h
                      Set the maximum _l_e_n_g_t_h of the left component of the sta-
@@ -1367,27 +1379,6 @@ OOPPTTIIOONNSS
                      this is important for wide characters.  This option
                      defaults to off.
 
-             tteerrmmiinnaall--oovveerrrriiddeess _s_t_r_i_n_g
-                     Contains a list of entries which override terminal
-                     descriptions read using terminfo(5).  _s_t_r_i_n_g is a comma-
-                     separated list of items each a colon-separated string
-                     made up of a terminal type pattern (matched using
-                     fnmatch(3)) and a set of _n_a_m_e_=_v_a_l_u_e entries.
-
-                     For example, to set the ‘clear’ terminfo(5) entry to
-                     ‘\e[H\e[2J’ for all terminal types and the ‘dch1’ entry
-                     to ‘\e[P’ for the ‘rxvt’ terminal type, the option could
-                     be set to the string:
-
-                           "*:clear=\e[H\e[2J,rxvt:dch1=\e[P"
-
-                     The terminal entry value is passed through strunvis(3)
-                     before interpretation.  The default value forcibly cor-
-                     rects the ‘colors’ entry for terminals which support 256
-                     colours:
-
-                           "*256col*:colors=256,xterm*:XT"
-
              uuppddaattee--eennvviirroonnmmeenntt _v_a_r_i_a_b_l_e_s
                      Set a space-separated string containing a list of envi-
                      ronment variables to be copied into the session environ-
@@ -1409,11 +1400,6 @@ OOPPTTIIOONNSS
                      instead of it being passed through to the terminal (which
                      normally makes a sound).  Also see the bbeellll--aaccttiioonn
                      option.
-
-             vviissuuaall--ccoonntteenntt [oonn | ooffff]
-                     Like vviissuuaall--aaccttiivviittyy, display a message when content is
-                     present in a window for which the mmoonniittoorr--ccoonntteenntt window
-                     option is enabled.
 
              vviissuuaall--ssiilleennccee [oonn | ooffff]
                      If mmoonniittoorr--ssiilleennccee is enabled, prints a message after the
@@ -1523,11 +1509,6 @@ OOPPTTIIOONNSS
                      Monitor for activity in the window.  Windows with activ-
                      ity are highlighted in the status line.
 
-             mmoonniittoorr--ccoonntteenntt _m_a_t_c_h_-_s_t_r_i_n_g
-                     Monitor content in the window.  When fnmatch(3) pattern
-                     _m_a_t_c_h_-_s_t_r_i_n_g appears in the window, it is highlighted in
-                     the status line.
-
              mmoonniittoorr--ssiilleennccee [iinntteerrvvaall]
                      Monitor for silence (no activity) in the window within
                      iinntteerrvvaall seconds.  Windows that have been silent for the
@@ -1546,9 +1527,19 @@ OOPPTTIIOONNSS
                      Like ootthheerr--ppaannee--hheeiigghhtt, but set the width of other panes
                      in the mmaaiinn--vveerrttiiccaall layout.
 
+             ppaannee--aaccttiivvee--bboorrddeerr--ssttyyllee _s_t_y_l_e
+                     Set the pane border style for the currently active pane.
+                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
+                     option.  Attributes are ignored.
+
              ppaannee--bbaassee--iinnddeexx _i_n_d_e_x
                      Like bbaassee--iinnddeexx, but set the starting index for pane num-
                      bers.
+
+             ppaannee--bboorrddeerr--ssttyyllee _s_t_y_l_e
+                     Set the pane border style for panes aside from the active
+                     pane.  For how to specify _s_t_y_l_e, see the
+                     mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.  Attributes are ignored.
 
              rreemmaaiinn--oonn--eexxiitt [oonn | ooffff]
                      A window with this flag set is not destroyed when the
@@ -1572,11 +1563,6 @@ OOPPTTIIOONNSS
              wwiinnddooww--ssttaattuuss--bbeellll--ssttyyllee _s_t_y_l_e
                      Set status line style for windows with a bell alert.  For
                      how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.
-
-             wwiinnddooww--ssttaattuuss--ccoonntteenntt--ssttyyllee _s_t_y_l_e
-                     Set status line style for windows with a content alert.
-                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
                      option.
 
              wwiinnddooww--ssttaattuuss--ccuurrrreenntt--ffoorrmmaatt _s_t_r_i_n_g
@@ -1636,16 +1622,20 @@ FFOORRMMAATTSS
      Certain commands accept the --FF flag with a _f_o_r_m_a_t argument.  This is a
      string which controls the output format of the command.  Replacement
      variables are enclosed in ‘#{’ and ‘}’, for example ‘#{session_name}’.
-     Some variables also have an shorter alias such as ‘#S’.  ‘##’ is replaced
-     by a single ‘#’.  Conditionals are also accepted by prefixing with ‘?’
-     and separating two alternatives with a comma; if the specified variable
-     exists and is not zero, the first alternative is chosen, otherwise the
-     second is used.  For example ‘#{?session_attached,attached,not attached}’
-     will include the string ‘attached’ if the session is attached and the
-     string ‘not attached’ if it is unattached.  A limit may be placed on the
-     length of the resultant string by prefixing it by an ‘=’, a number and a
-     colon, so ‘#{=10:pane_title}’ will include at most the first 10 charac-
-     ters of the pane title.
+     The possible variables are listed in the table below, or the name of a
+     ttmmuuxx option may be used for an option’s value.  Some variables have a
+     shorter alias such as ‘#S’, and ‘##’ is replaced by a single ‘#’.
+
+     Conditionals are available by prefixing with ‘?’ and separating two
+     alternatives with a comma; if the specified variable exists and is not
+     zero, the first alternative is chosen, otherwise the second is used.  For
+     example ‘#{?session_attached,attached,not attached}’ will include the
+     string ‘attached’ if the session is attached and the string ‘not
+     attached’ if it is unattached, or ‘#{?automatic-rename,yes,no}’ will
+     include ‘yes’ if aauuttoommaattiicc--rreennaammee is enabled, or ‘no’ if not.  A limit
+     may be placed on the length of the resultant string by prefixing it by an
+     ‘=’, a number and a colon, so ‘#{=10:pane_title}’ will include at most
+     the first 10 characters of the pane title.
 
      The following variables are available, where appropriate:
 
@@ -1653,7 +1643,7 @@ FFOORRMMAATTSS
      alternate_on                    If pane is in alternate screen
      alternate_saved_x               Saved cursor X in alternate screen
      alternate_saved_y               Saved cursor Y in alternate screen
-     buffer_sample                   First 50 characters from buffer
+     buffer_sample                   Sample of start of buffer
      buffer_size                     Size of the specified buffer in bytes
      client_activity                 Integer time client last had activity
      client_activity_string          String time client last had activity
@@ -1685,49 +1675,56 @@ FFOORRMMAATTSS
      mouse_standard_flag             Pane mouse standard flag
      mouse_utf8_flag                 Pane mouse UTF-8 flag
      pane_active                     1 if active pane
+     pane_bottom                     Bottom of pane
      pane_current_command            Current command if available
      pane_current_path               Current path if available
      pane_dead                       1 if pane is dead
+     pane_dead_status                Exit status of process in dead pane
      pane_height                     Height of pane
      pane_id                #D       Unique pane ID
      pane_in_mode                    If pane is in a mode
-     pane_synchronized               If pane is synchronized
+     pane_input_off                  If input to pane is disabled
      pane_index             #P       Index of pane
+     pane_left                       Left of pane
      pane_pid                        PID of first process in pane
+     pane_right                      Right of pane
      pane_start_command              Command pane started with
-     pane_start_path                 Path pane started with
+     pane_synchronized               If pane is synchronized
      pane_tabs                       Pane tab positions
      pane_title             #T       Title of pane
+     pane_top                        Top of pane
      pane_tty                        Pseudo terminal of pane
      pane_width                      Width of pane
      saved_cursor_x                  Saved cursor X in pane
      saved_cursor_y                  Saved cursor Y in pane
      scroll_region_lower             Bottom of scroll region in pane
      scroll_region_upper             Top of scroll region in pane
-     session_attached                1 if session attached
+     session_attached                Number of clients session is attached to
      session_created                 Integer time session created
      session_created_string          String time session created
      session_group                   Number of session group
      session_grouped                 1 if session in a group
      session_height                  Height of session
      session_id                      Unique session ID
+     session_many_attached           1 if multiple clients attached
      session_name           #S       Name of session
      session_width                   Width of session
      session_windows                 Number of windows in session
      window_active                   1 if window active
      window_activity_flag            1 if window has activity alert
      window_bell_flag                1 if window has bell
-     window_content_flag             1 if window has content alert
      window_find_matches             Matched data from the find-window
      window_flags           #F       Window flags
      window_height                   Height of window
      window_id                       Unique window ID
      window_index           #I       Index of window
+     window_last_flag                1 if window is the last used
      window_layout                   Window layout description
      window_name            #W       Name of window
      window_panes                    Number of panes in window
      window_silence_flag             1 if window has silence alert
      window_width                    Width of window
+     window_zoomed_flag              1 if window is zoomed
      wrap_flag                       Pane wrap flag
 
 NNAAMMEESS AANNDD TTIITTLLEESS
@@ -1811,14 +1808,13 @@ SSTTAATTUUSS LLIINNEE
            -         Marks the last window (previously selected).
            #         Window is monitored and activity has been detected.
            !         A bell has occurred in the window.
-           +         Window is monitored for content and it has appeared.
            ~         The window has been silent for the monitor-silence
                                 interval.
            Z         The window’s active pane is zoomed.
 
-     The # symbol relates to the mmoonniittoorr--aaccttiivviittyy and + to the mmoonniittoorr--ccoonntteenntt
-     window options.  The window name is printed in inverted colours if an
-     alert (bell, activity or content) is present.
+     The # symbol relates to the mmoonniittoorr--aaccttiivviittyy window option.  The window
+     name is printed in inverted colours if an alert (bell, activity or
+     silence) is present.
 
      The colour and attributes of the status line may be configured, the
      entire status line using the ssttaattuuss--ssttyyllee session option and individual
@@ -1868,11 +1864,19 @@ SSTTAATTUUSS LLIINNEE
              active pane for the session attached to _t_a_r_g_e_t_-_c_l_i_e_n_t.
 
 BBUUFFFFEERRSS
-     ttmmuuxx maintains a stack of _p_a_s_t_e _b_u_f_f_e_r_s.  Up to the value of the
-     bbuuffffeerr--lliimmiitt option are kept; when a new buffer is added, the buffer at
-     the bottom of the stack is removed.  Buffers may be added using ccooppyy--mmooddee
-     or the sseett--bbuuffffeerr command, and pasted into a window using the
-     ppaassttee--bbuuffffeerr command.
+     ttmmuuxx maintains a set of named _p_a_s_t_e _b_u_f_f_e_r_s.  Each buffer may be either
+     explicitly or automatically named.  Explicitly named buffers are named
+     when created with the sseett--bbuuffffeerr or llooaadd--bbuuffffeerr commands, or by renaming
+     an automatically named buffer with sseett--bbuuffffeerr --nn.  Automatically named
+     buffers are given a name such as ‘buffer0001’, ‘buffer0002’ and so on.
+     When the bbuuffffeerr--lliimmiitt option is reached, the oldest automatically named
+     buffer is deleted.  Explicitly named are not subject to bbuuffffeerr--lliimmiitt and
+     may be deleted with ddeelleettee--bbuuffffeerr command.
+
+     Buffers may be added using ccooppyy--mmooddee or the sseett--bbuuffffeerr and llooaadd--bbuuffffeerr
+     commands, and pasted into a window using the ppaassttee--bbuuffffeerr command.  If a
+     buffer command is used and no buffer is specified, the most recently
+     added automatically named buffer is assumed.
 
      A configurable history buffer is also maintained for each window.  By
      default, up to 2000 lines are kept; this can be altered with the
@@ -1883,7 +1887,7 @@ BBUUFFFFEERRSS
      cchhoooossee--bbuuffffeerr [--FF _f_o_r_m_a_t] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] [_t_e_m_p_l_a_t_e]
              Put a window into buffer choice mode, where a buffer may be cho-
              sen interactively from a list.  After a buffer is selected, ‘%%’
-             is replaced by the buffer index in _t_e_m_p_l_a_t_e and the result exe-
+             is replaced by the buffer name in _t_e_m_p_l_a_t_e and the result exe-
              cuted as a command.  If _t_e_m_p_l_a_t_e is not given, "paste-buffer -b
              ’%%’" is used.  For the meaning of the --FF flag, see the _F_O_R_M_A_T_S
              section.  This command works only if at least one client is
@@ -1893,42 +1897,44 @@ BBUUFFFFEERRSS
                    (alias: cclleeaarrhhiisstt)
              Remove and free the history for the specified pane.
 
-     ddeelleettee--bbuuffffeerr [--bb _b_u_f_f_e_r_-_i_n_d_e_x]
+     ddeelleettee--bbuuffffeerr [--bb _b_u_f_f_e_r_-_n_a_m_e]
                    (alias: ddeelleetteebb)
-             Delete the buffer at _b_u_f_f_e_r_-_i_n_d_e_x, or the top buffer if not spec-
-             ified.
+             Delete the buffer named _b_u_f_f_e_r_-_n_a_m_e, or the most recently added
+             automatically named buffer if not specified.
 
      lliisstt--bbuuffffeerrss [--FF _f_o_r_m_a_t]
                    (alias: llssbb)
              List the global buffers.  For the meaning of the --FF flag, see the
              _F_O_R_M_A_T_S section.
 
-     llooaadd--bbuuffffeerr [--bb _b_u_f_f_e_r_-_i_n_d_e_x] _p_a_t_h
+     llooaadd--bbuuffffeerr [--bb _b_u_f_f_e_r_-_n_a_m_e] _p_a_t_h
                    (alias: llooaaddbb)
              Load the contents of the specified paste buffer from _p_a_t_h.
 
-     ppaassttee--bbuuffffeerr [--ddpprr] [--bb _b_u_f_f_e_r_-_i_n_d_e_x] [--ss _s_e_p_a_r_a_t_o_r] [--tt _t_a_r_g_e_t_-_p_a_n_e]
+     ppaassttee--bbuuffffeerr [--ddpprr] [--bb _b_u_f_f_e_r_-_n_a_m_e] [--ss _s_e_p_a_r_a_t_o_r] [--tt _t_a_r_g_e_t_-_p_a_n_e]
                    (alias: ppaasstteebb)
              Insert the contents of a paste buffer into the specified pane.
              If not specified, paste into the current one.  With --dd, also
-             delete the paste buffer from the stack.  When output, any line-
-             feed (LF) characters in the paste buffer are replaced with a sep-
-             arator, by default carriage return (CR).  A custom separator may
-             be specified using the --ss flag.  The --rr flag means to do no
-             replacement (equivalent to a separator of LF).  If --pp is speci-
-             fied, paste bracket control codes are inserted around the buffer
-             if the application has requested bracketed paste mode.
+             delete the paste buffer.  When output, any linefeed (LF) charac-
+             ters in the paste buffer are replaced with a separator, by
+             default carriage return (CR).  A custom separator may be speci-
+             fied using the --ss flag.  The --rr flag means to do no replacement
+             (equivalent to a separator of LF).  If --pp is specified, paste
+             bracket control codes are inserted around the buffer if the
+             application has requested bracketed paste mode.
 
-     ssaavvee--bbuuffffeerr [--aa] [--bb _b_u_f_f_e_r_-_i_n_d_e_x] _p_a_t_h
+     ssaavvee--bbuuffffeerr [--aa] [--bb _b_u_f_f_e_r_-_n_a_m_e] _p_a_t_h
                    (alias: ssaavveebb)
              Save the contents of the specified paste buffer to _p_a_t_h.  The --aa
              option appends to rather than overwriting the file.
 
-     sseett--bbuuffffeerr [--bb _b_u_f_f_e_r_-_i_n_d_e_x] _d_a_t_a
+     sseett--bbuuffffeerr [--aa] [--bb _b_u_f_f_e_r_-_n_a_m_e] [--nn _n_e_w_-_b_u_f_f_e_r_-_n_a_m_e] _d_a_t_a
                    (alias: sseettbb)
-             Set the contents of the specified buffer to _d_a_t_a.
+             Set the contents of the specified buffer to _d_a_t_a.  The --aa option
+             appends to rather than overwriting the buffer.  The --nn option
+             renames the buffer to _n_e_w_-_b_u_f_f_e_r_-_n_a_m_e.
 
-     sshhooww--bbuuffffeerr [--bb _b_u_f_f_e_r_-_i_n_d_e_x]
+     sshhooww--bbuuffffeerr [--bb _b_u_f_f_e_r_-_n_a_m_e]
                    (alias: sshhoowwbb)
              Display the contents of the specified buffer.
 
@@ -1938,13 +1944,16 @@ MMIISSCCEELLLLAANNEEOOUUSS
      cclloocckk--mmooddee [--tt _t_a_r_g_e_t_-_p_a_n_e]
              Display a large clock.
 
-     iiff--sshheellll [--bb] [--tt _t_a_r_g_e_t_-_p_a_n_e] _s_h_e_l_l_-_c_o_m_m_a_n_d _c_o_m_m_a_n_d [_c_o_m_m_a_n_d]
+     iiff--sshheellll [--bbFF] [--tt _t_a_r_g_e_t_-_p_a_n_e] _s_h_e_l_l_-_c_o_m_m_a_n_d _c_o_m_m_a_n_d [_c_o_m_m_a_n_d]
                    (alias: iiff)
              Execute the first _c_o_m_m_a_n_d if _s_h_e_l_l_-_c_o_m_m_a_n_d returns success or the
-             second _c_o_m_m_a_n_d otherwise.  Before being executed, shell-command
+             second _c_o_m_m_a_n_d otherwise.  Before being executed, _s_h_e_l_l_-_c_o_m_m_a_n_d
              is expanded using the rules specified in the _F_O_R_M_A_T_S section,
              including those relevant to _t_a_r_g_e_t_-_p_a_n_e.  With --bb, _s_h_e_l_l_-_c_o_m_m_a_n_d
              is run in the background.
+
+             If --FF is given, _s_h_e_l_l_-_c_o_m_m_a_n_d is not executed but considered suc-
+             cess if neither empty nor zero (after formats are expanded).
 
      lloocckk--sseerrvveerr
                    (alias: lloocckk)
@@ -1979,13 +1988,13 @@ TTEERRMMIINNFFOO EEXXTTEENNSSIIOONNSS
 
                    $ printf ’\033]12;red\033\\’
 
-     _S_s, _S_e  Change the cursor style.  If set, a sequence such as this may be
-             used to change the cursor to an underline:
+     _S_s, _S_e  Set or reset the cursor style.  If set, a sequence such as this
+             may be used to change the cursor to an underline:
 
                    $ printf ’\033[4 q’
 
-             If _C_s_r is set, it will be used to reset the cursor style instead
-             of _C_s.
+             If _S_e is not set, Ss with argument 0 will be used to reset the
+             cursor style instead.
 
      _M_s      This sequence can be used by ttmmuuxx to store the current buffer in
              the host terminal’s selection (clipboard).  See the _s_e_t_-_c_l_i_p_b_o_a_r_d
