@@ -4,11 +4,11 @@ NAME
      tmux - terminal multiplexer
 
 SYNOPSIS
-     tmux [-28dqUuVv] [-f file] [-L socket-name] [-S socket-path]
+     tmux [-28dqUuv] [-f file] [-L socket-name] [-S socket-path]
 	  [command [flags]]
 
 DESCRIPTION
-     tmux is a terminal multiplexer; it enables a number of terminals to be
+     tmux is a terminal multiplexer: it enables a number of terminals to be
      accessed and controlled from a single terminal.
 
      tmux runs as a server-client system.  A server is created automatically
@@ -23,7 +23,8 @@ DESCRIPTION
 
      -2		   Force tmux to assume the terminal supports 256 colours.
 
-     -8		   Like -2, indicates the terminal supports 88 colours.
+     -8		   Like -2, but indicates that the terminal supports 88
+		   colours.
 
      -d		   Force tmux to assume the terminal supports default colours.
 
@@ -31,9 +32,6 @@ DESCRIPTION
 		   tmux will look for a config file at ~/.tmux.conf.  The con-
 		   figuration file is a set of tmux commands which are exe-
 		   cuted in sequence when the server is first started.
-
-     -q		   Prevent the server sending various information messages,
-		   for example when window flags are altered.
 
      -L socket-name
 		   tmux stores the server socket in a directory under /tmp;
@@ -43,6 +41,12 @@ DESCRIPTION
 		   is not necessary: the sockets are all created in the same
 		   directory.
 
+		   If the socket is accidentally removed, the SIGUSR1 signal
+		   may be sent to the tmux server process to recreate it.
+
+     -q		   Prevent the server sending various informational messages,
+		   for example when window flags are altered.
+
      -S socket-path
 		   Specify a full alternative path to the server socket.  If
 		   -S is specified, the default socket directory is not used
@@ -50,20 +54,22 @@ DESCRIPTION
 
      -U		   Unlock the server.
 
-     -u		   Instruct tmux that the terminal support UTF-8.
-
-     -V		   Print program version.
+     -u		   tmux attempts to guess if the terminal is likely to support
+		   UTF-8 by checking the first of the LC_ALL, LC_CTYPE and
+		   LANG environment variables to be set for the string
+		   "UTF-8".  This is not always correct: the -u flag explic-
+		   itly informs tmux that UTF-8 is supported.
 
      -v		   Request verbose logging.  This option may be specified mul-
 		   tiple times for increasing verbosity.  Log messages will be
 		   saved into tmux-client-PID.log and tmux-server-PID.log
-		   files in the current directory, where PID is the pid of the
+		   files in the current directory, where PID is the PID of the
 		   server or client process.
 
      command [flags]
 		   This specifies one of a set of commands used to control
-		   tmux, and described in the following sections.  If no com-
-		   mand and flags is specified, the new-session command is
+		   tmux, as described in the following sections.  If no com-
+		   mand and flags are specified, the new-session command is
 		   assumed.
 
 QUICK START
@@ -81,10 +87,9 @@ QUICK START
 
 	   $ tmux n
 	   ambiguous command: n, could be: new-session, new-window, next-window
-	   $
 
-     Within an active session, a new window may be created by typing ‘C-b’
-     (ctrl-b, known as the prefix key) followed by the ‘c’ key.
+     Within an active session, a new window may be created by typing ‘C-b c’
+     (Ctrl followed by the ‘b’ key followed by the ‘c’ key).
 
      Windows may be navigated with: ‘C-b 0’ (to select window 0), ‘C-b 1’ (to
      select window 1), and so on; ‘C-b n’ to select the next window; and ‘C-b
@@ -95,21 +100,47 @@ QUICK START
 	   $ tmux attach-session
 
      Typing ‘C-b ?’ lists the current key bindings in the current window; up
-     and down may be used to navigate the list or ‘Q’ to exit from it.
+     and down may be used to navigate the list or ‘q’ to exit from it.
+
+     Commands to be run when the tmux server is started may be placed in the
+     ~/.tmux.conf configuration file.  Common examples include:
+
+     Changing the default prefix key:
+
+	   set-option -g prefix C-a
+	   unbind-key C-b
+	   bind-key C-a send-prefix
+
+     Turning the status line off, or changing its colour:
+
+	   set-option -g status off
+	   set-option -g status-bg blue
+
+     Setting other options, such as the default command, or locking after 30
+     minutes of inactivity:
+
+	   set-option -g default-command "exec /bin/ksh"
+	   set-option -g lock-after-time 1800
+
+     Creating new key bindings:
+
+	   bind-key b set-option status
+	   bind-key / command-prompt "split-window ’exec man %%’"
 
 KEY BINDINGS
      tmux may be controlled from an attached client by using a key combination
-     of a prefix key, ‘C-b’ (ctrl-b) by default, followed by a command key.
+     of a prefix key, ‘C-b’ (Ctrl-b) by default, followed by a command key.
 
      Some of the default key bindings include:
 
-     ‘d’     Detach current client.
-     ‘c’     Create new window.
-     ‘n’     Change to next window in the current session.
-     ‘p’     Change to previous window in the current session.
-     ‘l’     Move to last (previously selected) window in the current session.
-     ‘t’     Display a large clock.
-     ‘?’     List current key bindings.
+	c	Create new window.
+	d	Detach current client.
+	l	Move to last (previously selected) window in the current ses-
+		sion.
+	n	Change to next window in the current session.
+	p	Change to previous window in the current session.
+	t	Display a large clock.
+	?	List current key bindings.
 
      A complete list may be obtained with the list-keys command (bound to ‘?’
      by default).  Key bindings may be changed with the bind-key and
@@ -117,7 +148,7 @@ KEY BINDINGS
 
 HISTORY
      tmux maintains a configurable history buffer for each window.  By
-     default, up to 2000 lines are kept, this can be altered with the
+     default, up to 2000 lines are kept; this can be altered with the
      history-limit option (see the set-option command below).
 
 MODES
@@ -138,9 +169,9 @@ MODES
 	     mode is entered with the copy-mode command, bound to [‘’ by
 	     default.
 
-     The keys available depend on whether emacs(1) or vi(1) mode is selected
-     (see the mode-keys option).  The following keys are supported as appro-
-     priate for the mode:
+     The keys available depend on whether emacs or vi mode is selected (see
+     the mode-keys option).  The following keys are supported as appropriate
+     for the mode:
 
 	   Function		   vi	       emacs
 	   Start of line	   0 or ^      C-a
@@ -157,6 +188,10 @@ MODES
 	   Cursor right		   l	       Right
 	   Start selection	   Space       C-Space
 	   Cursor up		   k	       Up
+	   Paste buffer		   p	       C-y
+
+     The paste buffer key pastes the first line from the top paste buffer on
+     the stack.
 
 BUFFERS
      tmux maintains a stack of paste buffers for each session.	Up to the
@@ -181,12 +216,8 @@ PANES AND LAYOUTS
 
      The following layouts are supported:
 
-     manual  Manual layout splits windows vertically (running across); only
-	     with this layout may panes be resized using the resize-pane-up
-	     and resize-pane-down commands.
-
      active-only
-	     Only the active pane is shown - all other panes are hidden.
+	     Only the active pane is shown – all other panes are hidden.
 
      even-horizontal
 	     Panes are spread out evenly from left to right across the window.
@@ -194,10 +225,54 @@ PANES AND LAYOUTS
      even-vertical
 	     Panes are spread evenly from top to bottom.
 
-     left-vertical
-	     A large (81 column) pane is shown on the left of the window and
-	     the remaining panes are spread from top to bottom in the leftover
-	     space to the right.
+     main-horizontal
+	     A large (main) pane is shown at the top of the window and the
+	     remaining panes are spread from left to right in the leftover
+	     space at the bottom.  Use the main-pane-height window option to
+	     specify the height of the top pane.
+
+     main-vertical
+	     Similar to main-horizontal but the large pane is placed on the
+	     left and the others spread from top to bottom along the right.
+	     See the main-pane-width window option.
+
+     manual  Manual layout splits windows vertically (running across); only
+	     with this layout may panes be resized using the resize-pane com-
+	     mand.
+
+STATUS LINE
+     tmux includes an optional status line which is displayed in the bottom
+     line of each terminal.  By default, the status line is enabled (it may be
+     disabled with the status session option) and contains, from left-to-
+     right: the name of the current session in square brackets; the window
+     list; the current window title in double quotes; and the time and date.
+
+     The status line is made of three parts: configurable left and right sec-
+     tions (which may contain dynamic content such as the time or output from
+     a shell command, see the status-left, status-left-length, status-right,
+     and status-right-length options below), and a central window list.	 The
+     window list shows the index, name and (if any) flag of the windows
+     present in the current session in ascending numerical order.  The flag is
+     one of the following symbols appended to the window name:
+
+	   Symbol    Meaning
+	   *	     Denotes the current window.
+	   -	     Marks the last window (previously selected).
+	   #	     Window is monitored and activity has been detected.
+	   !	     A bell has occurred in the window.
+	   +	     Window is monitored for content and it has appeared.
+
+     The # symbol relates to the monitor-activity and + to the monitor-content
+     window options.  The window name is printed in inverted colours if an
+     alert (bell, activity or content) is present.
+
+     The colour and attributes of the status line may be configured, the
+     entire status line using the status-attr, status-fg and status-bg session
+     options and individual windows using the window-status-attr,
+     window-status-fg and window-status-bg window options.
+
+     The status line is automatically refreshed at interval if it has changed,
+     the interval may be controlled with the status-interval session option.
 
 COMMANDS
      This section contains a list of the commands supported by tmux.  Most
@@ -208,12 +283,12 @@ COMMANDS
      Clients may be listed with the list-clients command.
 
      target-session is either the name of a session (as listed by the
-     list-sessions command); or the name of a client as for target-client, in
-     this case, the session attached to the client is used.  An fnmatch(3)
-     pattern may be used to match the session name.  If a session is omitted
-     when required, tmux attempts to use the current session; if no current
-     session is available, the most recently created is chosen.	 If no client
-     is specified, the current client is chosen, if possible, or an error is
+     list-sessions command) or the name of a client, target-client, in which
+     case the session attached to the client is used.  An fnmatch(3) pattern
+     may be used to match the session name.  If a session is omitted when
+     required, tmux attempts to use the current session; if no current session
+     is available, the most recently created is chosen.	 If no client is spec-
+     ified, the current client is chosen, if possible, or an error is
      reported.
 
      target-window specifies a window in the form session:index, for example
@@ -221,14 +296,14 @@ COMMANDS
      session, index or both may be omitted.  If session is omitted, the same
      rules as for target-session are followed; if index is not present, the
      current window for the given session is used.  When the argument does not
-     contain a colon (:), tmux first attempts to parse it as window index; if
-     that fails, an attempt is made to match a session or client name.
+     contain a colon, tmux first attempts to parse it as window index; if that
+     fails, an attempt is made to match a session or client name.
 
      Multiple commands may be specified together as part of a command
-     sequence.	Each command should be separated by spaces and a semicolon (‘
-     ; ’); commands are executed sequentially from left to right.  A literal
-     semicolon may be included by escaping it with a backslash (for example,
-     when specifying a command sequence to bind-key).
+     sequence.	Each command should be separated by spaces and a semicolon;
+     commands are executed sequentially from left to right.  A literal semi-
+     colon may be included by escaping it with a backslash (for example, when
+     specifying a command sequence to bind-key).
 
      Examples include:
 
@@ -257,10 +332,11 @@ COMMANDS
      bind-key [-r] key command [arguments]
 		   (alias: bind)
 	     Bind key key to command.  Keys may be specified prefixed with
-	     ‘C-’ or ‘^’ for ctrl keys, or ‘M-’ for alt (meta) keys.  The -r
+	     ‘C-’ or ‘^’ for Ctrl keys, or ‘M-’ for Alt (meta) keys.  The -r
 	     flag indicates this key may repeat, see the repeat-time option.
 
      break-pane [-d] [-p pane-index] [-t target-window]
+		   (alias: breakp)
 	     Break the current pane off from its containing window to make it
 	     the only pane in a new window.  If -d is given, the new window
 	     does not become the current window.
@@ -275,6 +351,10 @@ COMMANDS
 	     session attached to the current client may be selected interac-
 	     tively from a list.  This command works only from inside tmux.
 
+     clear-history [-p pane-index] [-t target-window]
+		   (alias: clearhist)
+	     Remove and free the history for the specified pane.
+
      clock-mode [-t target-window]
 	     Display a large clock.
 
@@ -283,6 +363,11 @@ COMMANDS
 	     inside tmux to execute commands interactively.  If template is
 	     specified, it is used as the command; any %% in the template will
 	     be replaced by what is entered at the prompt.
+
+     confirm-before [-t target-client] command
+		   (alias: confirm)
+	     Ask for confirmation before executing command.  This command
+	     works only from inside tmux.
 
      copy-buffer [-a src-index] [-b dst-index] [-s src-session] [-t
 	     dst-session]
@@ -309,10 +394,10 @@ COMMANDS
 
      find-window [-t target-window] match-string
 		   (alias: findw)
-	     Search for match-string in window names, titles, and visible con-
-	     tent (but not history).  If only one window is matched, it’ll be
-	     automatically selected, otherwise a choice list is shown.	This
-	     command only works from inside tmux.
+	     Search for the fnmatch(3) pattern match-string in window names,
+	     titles, and visible content (but not history).  If only one win-
+	     dow is matched, it’ll be automatically selected, otherwise a
+	     choice list is shown.  This command only works from inside tmux.
 
      has-session [-t target-session]
 		   (alias: has)
@@ -409,17 +494,19 @@ COMMANDS
 		   (alias: nextl)
 	     Move a window to the next layout and rearrange the panes to fit.
 
-     next-window [-t target-session]
+     next-window [-a] [-t target-session]
 		   (alias: next)
-	     Move to the next window in the session.
+	     Move to the next window in the session.  If -a is used, move to
+	     the next window with a bell, activity or content alert.
 
      paste-buffer [-d] [-b buffer-index] [-t target-window]
 		   (alias: pasteb)
 	     Insert the contents of a paste buffer into the current window.
 
-     previous-window [-t target-session]
+     previous-window [-a] [-t target-session]
 		   (alias: prev)
-	     Move to the previous window in the session.
+	     Move to the previous window in the session.  With -a, move to the
+	     previous window with a bell, activity or content alert.
 
      refresh-client [-t target-client]
 		   (alias: refresh)
@@ -435,13 +522,10 @@ COMMANDS
 	     Rename the current window, or the window at target-window if
 	     specified, to new-name.
 
-     resize-pane-down [-p pane-index] [-t target-window] [adjustment]
-		   (alias: resizep-down)
-
-     resize-pane-up [-p pane-index] [-t target-window] [adjustment]
-		   (alias: resizep-up)
-	     Resize a pane.  The adjustment is given in lines (the default is
-	     1).
+     resize-pane [-DU] [-p pane-index] [-t target-window] [adjustment]
+		   (alias: resizep)
+	     Resize a pane, upward with -U (the default) or downward with -D.
+	     The adjustment is given in lines (the default is 1).
 
      respawn-window [-k] [-t target-window] [command]
 		   (alias: respawnw)
@@ -464,6 +548,10 @@ COMMANDS
      scroll-mode [-u] [-t target-window]
 	     Enter scroll mode.	 The -u has the same meaning as in the
 	     copy-mode command.
+
+     select-layout [-t target-window] layout-name
+		   (alias: selectl)
+	     Choose a specific layout for a window.
 
      select-pane [-p pane-index] [-t target-window]
 		   (alias: selectp)
@@ -522,7 +610,9 @@ COMMANDS
 	     default-command command
 		     Set the command used for new windows (if not specified
 		     when the window is created) to command.  The default is
-		     “exec $SHELL”.
+		     an empty string, which instructs tmux to create a login
+		     shell using the SHELL environment variable or, if it is
+		     unset, the user’s shell returned by getpwuid(3).
 
 	     default-path path
 		     Set the default working directory for processes created
@@ -573,9 +663,9 @@ COMMANDS
 	     set-titles [on | off]
 		     Attempt to set the window title using the \e]2;...\007
 		     xterm code and the terminal appears to be an xterm.  This
-		     option is enabled by default.  Note that elinks(1) will
-		     only attempt to set the window title if the STY environ-
-		     ment variable is set.
+		     option is off by default.	Note that elinks will only
+		     attempt to set the window title if the STY environment
+		     variable is set.
 
 	     status [on | off]
 		     Show or hide the status line.
@@ -595,9 +685,8 @@ COMMANDS
 		     of zero disables redrawing at interval.
 
 	     status-keys [vi | emacs]
-		     Use vi(1) - or emacs(1) -style key bindings in the status
-		     line, for example at the command prompt.  Defaults to
-		     emacs.
+		     Use vi or emacs-style key bindings in the status line,
+		     for example at the command prompt.	 Defaults to emacs.
 
 	     status-left string
 		     Display string to the left of the status bar.  string
@@ -615,6 +704,9 @@ COMMANDS
 		     Where appropriate, these may be prefixed with a number to
 		     specify the maximum length, for example ‘#24T’.
 
+		     By default, UTF-8 in string is not interpreted, to enable
+		     UTF-8, use the status-utf8 option.
+
 	     status-left-length length
 		     Set the maximum length of the left component of the sta-
 		     tus bar.  The default is 10.
@@ -622,12 +714,19 @@ COMMANDS
 	     status-right string
 		     Display string to the right of the status bar.  By
 		     default, the date and time will be shown.	As with
-		     status-left, string will be passed to strftime(3) and
-		     character pairs are replaced.
+		     status-left, string will be passed to strftime(3), char-
+		     acter pairs are replaced, and UTF-8 is dependent on the
+		     status-utf8 option.
 
 	     status-right-length length
 		     Set the maximum length of the right component of the sta-
 		     tus bar.  The default is 40.
+
+	     status-utf8 [on | off]
+		     Instruct tmux to treat top-bit-set characters in the
+		     status-left and status-right strings as UTF-8; notably,
+		     this is important for wide characters.  This option
+		     defaults to off.
 
      set-password [-c] password
 		   (alias: pass)
@@ -679,6 +778,12 @@ COMMANDS
 		     or height.	 A value of zero restores the default unlim-
 		     ited setting.
 
+	     main-pane-width width
+
+	     main-pane-height height
+		     Set the width or height of the main (left or top) pane in
+		     the main-horizontal or main-vertical layouts.
+
 	     mode-attr attributes
 		     Set window modes attributes.
 
@@ -689,12 +794,17 @@ COMMANDS
 		     Set window modes foreground colour.
 
 	     mode-keys [vi | emacs]
-		     Use vi(1) - or emacs(1) -style key bindings in scroll and
-		     copy modes.  Key bindings default to emacs.
+		     Use vi or emacs-style key bindings in scroll and copy
+		     modes.  Key bindings default to emacs.
 
 	     monitor-activity [on | off]
 		     Monitor for activity in the window.  Windows with activ-
 		     ity are highlighted in the status line.
+
+	     monitor-content match-string
+		     Monitor content in the window.  When fnmatch(3) pattern
+		     match-string appears in the window, it is highlighted in
+		     the status line.
 
 	     remain-on-exit [on | off]
 		     A window with this flag set is not destroyed when the
@@ -717,7 +827,7 @@ COMMANDS
 	     xterm-keys [on | off]
 		     If this option is set, tmux will generate xterm(1) -style
 		     function key sequences; these have a number included to
-		     indicate modifiers such as shift, meta or ctrl.
+		     indicate modifiers such as Shift, Alt or Ctrl.
 
      show-buffer [-b buffer-index] [-t target-session]
 		   (alias: showb)
@@ -796,8 +906,7 @@ COMMANDS
 	     Move up a pane.
 
 FILES
-     ~/.tmux.conf
-	     default tmux configuration file
+     ~/.tmux.conf     Default tmux configuration file.
 
 SEE ALSO
      pty(4)
@@ -805,4 +914,4 @@ SEE ALSO
 AUTHORS
      Nicholas Marriott 〈nicm@users.sourceforge.net〉
 
-BSD				April 20, 2009				   BSD
+BSD			       December 4, 2019				   BSD
