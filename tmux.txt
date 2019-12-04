@@ -112,7 +112,7 @@ DESCRIPTION
 		   tmux, as described in the following sections.  If no com-
 		   mands are specified, the new-session command is assumed.
 
-KEY BINDINGS
+DEFAULT KEY BINDINGS
      tmux may be controlled from an attached client by using a key combination
      of a prefix key, ‘C-b’ (Ctrl-b) by default, followed by a command key.
 
@@ -313,11 +313,11 @@ COMMANDS
      command [arguments] refers to a tmux command, passed with the command and
      arguments separately, for example:
 
-	   bind-key F1 set-window-option force-width 81
+	   bind-key F1 set-option status off
 
      Or if using sh(1):
 
-	   $ tmux bind-key F1 set-window-option force-width 81
+	   $ tmux bind-key F1 set-option status off
 
      Multiple commands may be specified together as part of a command
      sequence.	Each command should be separated by spaces and a semicolon;
@@ -439,8 +439,10 @@ CLIENTS AND SESSIONS
 	     The new session is attached to the current terminal unless -d is
 	     given.  window-name and shell-command are the name of and shell
 	     command to execute in the initial window.	With -d, the initial
-	     size is 80 x 24; -x and -y can be used to specify a different
-	     size.  ‘-’ uses the size of the current client if any.
+	     size comes from the global default-size option; -x and -y can be
+	     used to specify a different size.	‘-’ uses the size of the cur-
+	     rent client if any.  If -x or -y is given, the default-size
+	     option is set for the session.
 
 	     If run from a terminal, any termios(4) special characters are
 	     saved and used for new windows in the new session.
@@ -475,13 +477,30 @@ CLIENTS AND SESSIONS
 
 	     If -E is used, the update-environment option will not be applied.
 
-     refresh-client [-C width,height] [-S] [-t target-client]
+     refresh-client [-cDlLRSU] [-C width,height] [-t target-client]
+	     [adjustment]
 		   (alias: refresh)
 	     Refresh the current client if bound to a key, or a single client
 	     if one is given with -t.  If -S is specified, only update the
 	     client’s status line.
 
-	     -C sets the width and height of a control client.
+	     The -U, -D, -L -R, and -c flags allow the visible portion of a
+	     window which is larger than the client to be changed.  -U moves
+	     the visible part up by adjustment rows and -D down, -L left by
+	     adjustment columns and -R right.  -c returns to tracking the cur-
+	     sor automatically.	 If adjustment is omitted, 1 is used.  Note
+	     that the visible position is a property of the client not of the
+	     window, changing the current window in the attached session will
+	     reset it.
+
+	     -C sets the width and height of a control client.	-l requests
+	     the clipboard from the client using the xterm(1) escape sequence
+	     and stores it in a new paste buffer.
+
+	     -L, -R, -U and -D move the visible portion of the window left,
+	     right, up or down by adjustment, if the window is larger than the
+	     client.  -c resets so that the position follows the cursor.  See
+	     the window-size option.
 
      rename-session [-t target-session] new-name
 		   (alias: rename)
@@ -814,7 +833,7 @@ WINDOWS AND PANES
 	     session groups in the tree rather than only the first.  This com-
 	     mand works only if at least one client is attached.
 
-     display-panes [-d duration] [-t target-client] [template]
+     display-panes [-b] [-d duration] [-t target-client] [template]
 		   (alias: displayp)
 	     Display a visible indicator of each pane shown by target-client.
 	     See the display-panes-colour and display-panes-active-colour ses-
@@ -825,14 +844,16 @@ WINDOWS AND PANES
 	     screen, a pane may be chosen with the ‘0’ to ‘9’ keys, which will
 	     cause template to be executed as a command with ‘%%’ substituted
 	     by the pane ID.  The default template is "select-pane -t ’%%’".
+	     With -b, other commands are not blocked from running until the
+	     indicator is closed.
 
-     find-window [-CNT] [-t target-pane] match-string
+     find-window [-CNTZ] [-t target-pane] match-string
 		   (alias: findw)
 	     Search for the fnmatch(3) pattern match-string in window names,
 	     titles, and visible content (but not history).  The flags control
 	     matching behavior: -C matches only visible window contents, -N
 	     matches only the window name and -T matches only the window
-	     title.  The default is -CNT.
+	     title.  The default is -CNT.  -Z zooms the pane.
 
 	     This command works only if at least one client is attached.
 
@@ -988,6 +1009,16 @@ WINDOWS AND PANES
 
 	     -M begins mouse resizing (only valid if bound to a mouse key
 	     binding, see MOUSE SUPPORT).
+
+     resize-window [-aADLRU] [-t target-window] [-x width] [-y height]
+	     [adjustment]
+		   (alias: resizew)
+	     Resize a window, up, down, left or right by adjustment with -U,
+	     -D, -L or -R, or to an absolute size with -x or -y.  The
+	     adjustment is given in lines or cells (the default is 1).	-A
+	     sets the size of the largest session containing the window; -a
+	     the size of the smallest.	This command will automatically set
+	     window-size to manual in the window options.
 
      respawn-pane [-c start-directory] [-k] [-t target-pane] [shell-command]
 		   (alias: respawnp)
@@ -1349,6 +1380,12 @@ OPTIONS
 		     which instructs tmux to create a login shell using the
 		     value of the default-shell option.
 
+	     default-size XxY
+		     Set the default size of new windows when the window-size
+		     option is set to manual or when a session is created with
+		     new-session -d.  The value is the width and height sepa-
+		     rated by an ‘x’ character.	 The default is 80x24.
+
 	     default-shell path
 		     Specify the default shell.	 This is used as the login
 		     shell for new windows when the default-command option is
@@ -1358,6 +1395,10 @@ OPTIONS
 		     able, the shell returned by getpwuid(3), or /bin/sh.
 		     This option should be configured when tmux is used as a
 		     login shell.
+
+	     default-size XxY
+		     Set the default size of windows when the size is not set
+		     or the window-size option is manual.
 
 	     destroy-unattached [on | off]
 		     If enabled and the session is no longer attached to any
@@ -1406,36 +1447,12 @@ OPTIONS
 		     to run lock(1) with -np.
 
 	     message-command-style style
-		     Set status line message command style, where style is a
-		     comma-separated list of characteristics to be specified.
-
-		     These may be ‘bg=colour’ to set the background colour,
-		     ‘fg=colour’ to set the foreground colour, and a list of
-		     attributes as specified below.
-
-		     The colour is one of: black, red, green, yellow, blue,
-		     magenta, cyan, white, aixterm bright variants (if sup-
-		     ported: brightred, brightgreen, and so on), colour0 to
-		     colour255 from the 256-colour set, default, or a hexadec-
-		     imal RGB string such as ‘#ffffff’.
-
-		     The attributes is either none or a comma-delimited list
-		     of one or more of: bright (or bold), dim, underscore,
-		     blink, reverse, hidden, italics, or strikethrough to turn
-		     an attribute on, or an attribute prefixed with ‘no’ to
-		     turn one off.
-
-		     Examples are:
-
-			   fg=yellow,bold,underscore,blink
-			   bg=black,fg=default,noreverse
-
-		     With the -a flag to the set-option command the new style
-		     is added otherwise the existing style is replaced.
+		     Set status line message command style.  For how to spec-
+		     ify style, see the STYLES section.
 
 	     message-style style
 		     Set status line message style.  For how to specify style,
-		     see the message-command-style option.
+		     see the STYLES section.
 
 	     mouse [on | off]
 		     If on, tmux captures the mouse and allows mouse events to
@@ -1480,8 +1497,15 @@ OPTIONS
 		     Set action on window silence when monitor-silence is on.
 		     The values are the same as those for activity-action.
 
-	     status [on | off]
-		     Show or hide the status line.
+	     status [off | on | 2 | 3 | 4 | 5]
+		     Show or hide the status line or specify its size.	Using
+		     on gives a status line one row in height; 2, 3, 4 or 5
+		     more rows.
+
+	     status-format[] format
+		     Specify the format to be used for each line of the status
+		     line.  The default builds the top status line from the
+		     various individual status options below.
 
 	     status-interval interval
 		     Update the status line every interval seconds.  By
@@ -1501,12 +1525,7 @@ OPTIONS
 	     status-left string
 		     Display string (by default the session name) to the left
 		     of the status line.  string will be passed through
-		     strftime(3) and formats (see FORMATS) will be expanded.
-		     It may also contain the special character sequence #[] to
-		     change the colour or attributes, for example
-		     ‘#[fg=red,bright]’ to set a bright red foreground.	 See
-		     the message-command-style option for a description of
-		     colours and attributes.
+		     strftime(3).  Also see the FORMATS and STYLES sections.
 
 		     For details on how the names and titles can be set see
 		     the NAMES AND TITLES section.
@@ -1524,8 +1543,7 @@ OPTIONS
 
 	     status-left-style style
 		     Set the style of the left part of the status line.	 For
-		     how to specify style, see the message-command-style
-		     option.
+		     how to specify style, see the STYLES section.
 
 	     status-position [top | bottom]
 		     Set the position of the status line.
@@ -1543,12 +1561,11 @@ OPTIONS
 
 	     status-right-style style
 		     Set the style of the right part of the status line.  For
-		     how to specify style, see the message-command-style
-		     option.
+		     how to specify style, see the STYLES section.
 
 	     status-style style
 		     Set status line style.  For how to specify style, see the
-		     message-command-style option.
+		     STYLES section.
 
 	     update-environment[] variable
 		     Set list of environment variables to be copied into the
@@ -1603,12 +1620,12 @@ OPTIONS
 	     aggressive-resize [on | off]
 		     Aggressively resize the chosen window.  This means that
 		     tmux will resize the window to the size of the smallest
-		     session for which it is the current window, rather than
-		     the smallest session to which it is attached.  The window
-		     may resize when the current window is changed on another
-		     sessions; this option is good for full-screen programs
-		     which support SIGWINCH and poor for interactive programs
-		     such as shells.
+		     or largest session (see the window-size option) for which
+		     it is the current window, rather than the session to
+		     which it is attached.  The window may resize when the
+		     current window is changed on another session; this option
+		     is good for full-screen programs which support SIGWINCH
+		     and poor for interactive programs such as shells.
 
 	     allow-rename [on | off]
 		     Allow programs to change the window name using a terminal
@@ -1646,12 +1663,6 @@ OPTIONS
 	     clock-mode-style [12 | 24]
 		     Set clock hour format.
 
-	     force-height height
-	     force-width width
-		     Prevent tmux from resizing a window to greater than width
-		     or height.	 A value of zero restores the default unlim-
-		     ited setting.
-
 	     main-pane-height height
 	     main-pane-width width
 		     Set the width or height of the main (left or top) pane in
@@ -1663,7 +1674,7 @@ OPTIONS
 
 	     mode-style style
 		     Set window modes style.  For how to specify style, see
-		     the message-command-style option.
+		     the STYLES section.
 
 	     monitor-activity [on | off]
 		     Monitor for activity in the window.  Windows with activ-
@@ -1693,8 +1704,8 @@ OPTIONS
 
 	     pane-active-border-style style
 		     Set the pane border style for the currently active pane.
-		     For how to specify style, see the message-command-style
-		     option.  Attributes are ignored.
+		     For how to specify style, see the STYLES section.
+		     Attributes are ignored.
 
 	     pane-base-index index
 		     Like base-index, but set the starting index for pane num-
@@ -1708,8 +1719,8 @@ OPTIONS
 
 	     pane-border-style style
 		     Set the pane border style for panes aside from the active
-		     pane.  For how to specify style, see the
-		     message-command-style option.  Attributes are ignored.
+		     pane.  For how to specify style, see the STYLES section.
+		     Attributes are ignored.
 
 	     remain-on-exit [on | off]
 		     A window with this flag set is not destroyed when the
@@ -1723,17 +1734,15 @@ OPTIONS
 
 	     window-active-style style
 		     Set the style for the window’s active pane.  For how to
-		     specify style, see the message-command-style option.
+		     specify style, see the STYLES section.
 
 	     window-status-activity-style style
 		     Set status line style for windows with an activity alert.
-		     For how to specify style, see the message-command-style
-		     option.
+		     For how to specify style, see the STYLES section.
 
 	     window-status-bell-style style
 		     Set status line style for windows with a bell alert.  For
-		     how to specify style, see the message-command-style
-		     option.
+		     how to specify style, see the STYLES section.
 
 	     window-status-current-format string
 		     Like window-status-format, but is the format used when
@@ -1741,19 +1750,16 @@ OPTIONS
 
 	     window-status-current-style style
 		     Set status line style for the currently active window.
-		     For how to specify style, see the message-command-style
-		     option.
+		     For how to specify style, see the STYLES section.
 
 	     window-status-format string
 		     Set the format in which the window is displayed in the
-		     status line window list.  See the status-left option for
-		     details of special character sequences available.	The
-		     default is ‘#I:#W#F’.
+		     status line window list.  See the FORMATS and STYLES sec-
+		     tions.
 
 	     window-status-last-style style
 		     Set status line style for the last active window.	For
-		     how to specify style, see the message-command-style
-		     option.
+		     how to specify style, see the STYLES section.
 
 	     window-status-separator string
 		     Sets the separator drawn between windows in the status
@@ -1761,11 +1767,27 @@ OPTIONS
 
 	     window-status-style style
 		     Set status line style for a single window.	 For how to
-		     specify style, see the message-command-style option.
+		     specify style, see the STYLES section.
+
+	     window-size largest | smallest | manual
+		     Configure how tmux determines the window size.  If set to
+		     largest, the size of the largest attached session is
+		     used; if smallest, the size of the smallest.  If manual,
+		     the size of a new window is set from the default-size
+		     option and windows are resized automatically.  See also
+		     the resize-window command and the aggressive-resize
+		     option.
 
 	     window-style style
 		     Set the default window style.  For how to specify style,
-		     see the message-command-style option.
+		     see the STYLES section.
+
+	     window-size [smallest | largest | manual]
+		     Tell tmux how to automatically size windows either the
+		     size of the smallest session containing the window, the
+		     size of the largest, or manual size.  See also the
+		     resize-window command and the default-size and
+		     aggressive-resize options.
 
 	     wrap-search [on | off]
 		     If this option is set, searches will wrap around the end
@@ -1868,9 +1890,16 @@ HOOKS
 MOUSE SUPPORT
      If the mouse option is on (the default is off), tmux allows mouse events
      to be bound as keys.  The name of each key is made up of a mouse event
-     (such as ‘MouseUp1’) and a location suffix (one of ‘Pane’ for the con-
-     tents of a pane, ‘Border’ for a pane border or ‘Status’ for the status
-     line).  The following mouse events are available:
+     (such as ‘MouseUp1’) and a location suffix, one of the following:
+
+	   Pane		    the contents of a pane
+	   Border	    a pane border
+	   Status	    the status line window list
+	   StatusLeft	    the left part of the status line
+	   StatusRight	    the right part of the status line
+	   StatusDefault    any other part of the status line
+
+     The following mouse events are available:
 
 	   WheelUp	 WheelDown
 	   MouseDown1	 MouseUp1      MouseDrag1   MouseDragEnd1
@@ -1935,8 +1964,20 @@ FORMATS
      with ‘t:’ will convert it to a string, so if ‘#{window_activity}’ gives
      ‘1445765102’, ‘#{t:window_activity}’ gives ‘Sun Oct 25 09:25:02 2015’.
      The ‘b:’ and ‘d:’ prefixes are basename(3) and dirname(3) of the variable
-     respectively.  A prefix of the form ‘s/foo/bar/:’ will substitute ‘foo’
-     with ‘bar’ throughout.
+     respectively.  ‘q:’ will escape sh(1) special characters.	‘E:’ will
+     expand the format twice, for example ‘#{E:status-left}’ is the result of
+     expanding the content of the status-left option rather than the content
+     itself.  ‘T:’ is like ‘E:’ but also expands strftime(3) specifiers.
+     ‘S:’, ‘W:’ or ‘P:’ will loop over each session, window or pane and insert
+     the format once for each.	For windows and panes, two comma-separated
+     formats may be given: the second is used for the current window or active
+     pane.  For example, to get a list of windows formatted like the status
+     line:
+
+	   #{W:#{E:window-status-format} ,#{E:window-status-current-format} }
+
+     A prefix of the form ‘s/foo/bar/:’ will substitute ‘foo’ with ‘bar’
+     throughout.
 
      In addition, the first line of a shell command’s output may be inserted
      using ‘#()’.  For example, ‘#(uptime)’ will insert the system’s uptime.
@@ -1980,6 +2021,7 @@ FORMATS
      command_list_alias		     Command alias if listing commands
      command_list_usage		     Command usage if listing commands
      cursor_flag		     Pane cursor flag
+     cursor_character		     Character at cursor in pane
      cursor_x			     Cursor X position in pane
      cursor_y			     Cursor Y position in pane
      history_bytes		     Number of bytes in window history
@@ -2049,12 +2091,10 @@ FORMATS
      session_group_size		     Size of session group
      session_group_list		     List of sessions in group
      session_grouped		     1 if session in a group
-     session_height		     Height of session
      session_id			     Unique session ID
      session_many_attached	     1 if multiple clients attached
      session_name	    #S	     Name of session
      session_stack		     Window indexes in most recent order
-     session_width		     Width of session
      session_windows		     Number of windows in session
      socket_path		     Server socket path
      start_time			     Server start time
@@ -2063,6 +2103,8 @@ FORMATS
      window_activity_flag	     1 if window has activity
      window_active		     1 if window active
      window_bell_flag		     1 if window has bell
+     window_bigger		     1 if window is larger than client
+     window_end_flag		     1 if window has the highest index
      window_flags	    #F	     Window flags
      window_format		     1 if format is for a window (not assuming
 				     the current)
@@ -2074,14 +2116,73 @@ FORMATS
 				     zoomed window panes
      window_linked		     1 if window is linked across sessions
      window_name	    #W	     Name of window
+     window_offset_x		     X offset into window if larger than
+				     client
+     window_offset_y		     Y offset into window if larger than
+				     client
      window_panes		     Number of panes in window
      window_silence_flag	     1 if window has silence alert
      window_stack_index		     Index in session most recent stack
+     window_start_flag		     1 if window has the lowest index
      window_visible_layout	     Window layout description, respecting
 				     zoomed window panes
      window_width		     Width of window
      window_zoomed_flag		     1 if window is zoomed
      wrap_flag			     Pane wrap flag
+
+STYLES
+     tmux offers various options to specify the colour and attributes of
+     aspects of the interface, for example status-style for the status line.
+     In addition, embedded styles may be specified in format options, such as
+     status-left-format, by enclosing them in ‘#[’ and ‘’].
+
+     A style may be the single term ‘default’ to specify the default style
+     (which may inherit from another option) or a space or comma separated
+     list of the following:
+
+     fg=colour
+	     Set the foreground colour.	 The colour is one of: black, red,
+	     green, yellow, blue, magenta, cyan, white; if supported the
+	     bright variants brightred, brightgreen, brightyellow; colour0 to
+	     colour255 from the 256-colour set; default for the default
+	     colour; terminal for the terminal default colour; or a hexadeci-
+	     mal RGB string such as ‘#ffffff’.
+
+     bg=colour
+	     Set the background colour.
+
+     none    Set no attributes (turn off any active attributes).
+
+     bright (or bold), dim, underscore, blink, reverse, hidden, italics,
+	     strikethrough, double-underscore, curly-underscore,
+	     dotted-underscore, dashed-underscore
+	     Set an attribute.	Any of the attributes may be prefixed with
+	     ‘no’ to unset.
+
+     align=left (or noalign), align=centre, align=right
+	     Align text to the left, centre or right of the available space if
+	     appropriate.
+
+     list=on, list=focus, list=left-marker, list=right=marker, nolist
+	     Mark the position of the various window list components in the
+	     status-format option: list=on marks the start of the list;
+	     list=focus is the part of the list that should be kept in focus
+	     if the entire list won’t fit in the available space (typically
+	     the current window); list=left-marker and list=right-marker mark
+	     the text to be used to mark that text has been trimmed from the
+	     left or right of the list if there is not enough space.
+
+     range=left, range=right, range=window|X, norange
+	     Mark a range in the status-format option.	range=left and
+	     range=right are the text used for the ‘StatusLeft’ and
+	     ‘StatusRight’ mouse keys.	range=window|X is the range for a win-
+	     dow passed to the ‘Status’ mouse key, where ‘X’ is a window
+	     index.
+
+     Examples are:
+
+	   fg=yellow bold underscore blink
+	   bg=black,fg=default,noreverse
 
 NAMES AND TITLES
      tmux distinguishes between names and titles.  Windows and sessions have
@@ -2107,7 +2208,7 @@ NAMES AND TITLES
 	     the window’s active pane.	See the automatic-rename option.
 
      When a pane is first created, its title is the hostname.  A pane’s title
-     can be set via the OSC title setting sequence, for example:
+     can be set via the title setting escape sequence, for example:
 
 	   $ printf ’\033]2;My Title\033\\’
 
@@ -2146,16 +2247,19 @@ ENVIRONMENT
 
 STATUS LINE
      tmux includes an optional status line which is displayed in the bottom
-     line of each terminal.  By default, the status line is enabled (it may be
-     disabled with the status session option) and contains, from left-to-
-     right: the name of the current session in square brackets; the window
-     list; the title of the active pane in double quotes; and the time and
-     date.
+     line of each terminal.
 
-     The status line is made of three parts: configurable left and right sec-
-     tions (which may contain dynamic content such as the time or output from
-     a shell command, see the status-left, status-left-length, status-right,
-     and status-right-length options below), and a central window list.	 By
+     By default, the status line is enabled and one line in height (it may be
+     disabled or made multiple lines with the status session option) and con-
+     tains, from left-to-right: the name of the current session in square
+     brackets; the window list; the title of the active pane in double quotes;
+     and the time and date.
+
+     Each line of the status line is configured with the status-format option.
+     The default is made of three parts: configurable left and right sections
+     (which may contain dynamic content such as the time or output from a
+     shell command, see the status-left, status-left-length, status-right, and
+     status-right-length options below), and a central window list.  By
      default, the window list shows the index, name and (if any) flag of the
      windows present in the current session in ascending numerical order.  It
      may be customised with the window-status-format and
@@ -2241,13 +2345,16 @@ STATUS LINE
 
 	     This command works only from inside tmux.
 
-     display-message [-p] [-c target-client] [-t target-pane] [message]
+     display-message [-apv] [-c target-client] [-t target-pane] [message]
 		   (alias: display)
 	     Display a message.	 If -p is given, the output is printed to std-
 	     out, otherwise it is displayed in the target-client status line.
 	     The format of message is described in the FORMATS section; infor-
 	     mation is taken from target-pane if -t is given, otherwise the
 	     active pane for the session attached to target-client.
+
+	     -v prints verbose logging as the format is parsed and -a lists
+	     the format variables and their values.
 
 BUFFERS
      tmux maintains a set of named paste buffers.  Each buffer may be either
@@ -2389,7 +2496,7 @@ MISCELLANEOUS
 	     woken using wait-for -S with the same channel.  When -L is used,
 	     the channel is locked and any clients that try to lock the same
 	     channel are made to wait until the channel is unlocked with
-	     wait-for -U.  This command only works from outside tmux.
+	     wait-for -U.
 
 TERMINFO EXTENSIONS
      tmux understands some unofficial extensions to terminfo(5):
@@ -2400,6 +2507,11 @@ TERMINFO EXTENSIONS
 	     this may be used to change the cursor colour from inside tmux:
 
 		   $ printf ’\033]12;red\033\\’
+
+     Smulx   Set a styled underline.  The single parameter is one of: 0 for no
+	     underline, 1 for normal underline, 2 for double underline, 3 for
+	     curly underline, 4 for dotted underline and 5 for dashed under-
+	     line.
 
      Ss, Se  Set or reset the cursor style.  If set, a sequence such as this
 	     may be used to change the cursor to an underline:
@@ -2412,7 +2524,7 @@ TERMINFO EXTENSIONS
      Tc	     Indicate that the terminal supports the ‘direct colour’ RGB
 	     escape sequence (for example, \e[38;2;255;255;255m).
 
-	     If supported, this is used for the OSC initialize colour escape
+	     If supported, this is used for the initialize colour escape
 	     sequence (which may be enabled by adding the ‘initc’ and ‘ccc’
 	     capabilities to the tmux terminfo(5) entry).
 
