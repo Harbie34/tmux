@@ -4,8 +4,8 @@ NNAAMMEE
      ttmmuuxx - terminal multiplexer
 
 SSYYNNOOPPSSIISS
-     ttmmuuxx [--2288ddllqqUUuuvv] [--ff _f_i_l_e] [--LL _s_o_c_k_e_t_-_n_a_m_e] [--SS _s_o_c_k_e_t_-_p_a_t_h]
-          [_c_o_m_m_a_n_d [_f_l_a_g_s]]
+     ttmmuuxx [--2288llqquuvv] [--cc _s_h_e_l_l_-_c_o_m_m_a_n_d] [--ff _f_i_l_e] [--LL _s_o_c_k_e_t_-_n_a_m_e]
+          [--SS _s_o_c_k_e_t_-_p_a_t_h] [_c_o_m_m_a_n_d [_f_l_a_g_s]]
 
 DDEESSCCRRIIPPTTIIOONN
      ttmmuuxx is a terminal multiplexer: it enables a number of terminals to be
@@ -43,7 +43,10 @@ DDEESSCCRRIIPPTTIIOONN
      --88            Like --22, but indicates that the terminal supports 88
                    colours.
 
-     --dd            Force ttmmuuxx to assume the terminal supports default colours.
+     --cc _s_h_e_l_l_-_c_o_m_m_a_n_d
+                   Execute _s_h_e_l_l_-_c_o_m_m_a_n_d using the default shell.  If neces-
+                   sary, the ttmmuuxx server will be started to retrieve the
+                   ddeeffaauulltt--sshheellll option.
 
      --ff _f_i_l_e       Specify an alternative configuration file.  By default,
                    ttmmuuxx loads the system configuration file from
@@ -78,8 +81,6 @@ DDEESSCCRRIIPPTTIIOONN
                    Specify a full alternative path to the server socket.  If
                    --SS is specified, the default socket directory is not used
                    and any --LL flag is ignored.
-
-     --UU            Unlock the server.
 
      --uu            ttmmuuxx attempts to guess if the terminal is likely to support
                    UTF-8 by checking the first of the LC_ALL, LC_CTYPE and
@@ -141,7 +142,7 @@ CCOOMMMMAANNDDSS
      tern.  If a single match is found, it is used as the target session; mul-
      tiple matches produce an error.  If a session is omitted, the current
      session is used if available; if no current session is available, the
-     most recently created is chosen.
+     most recently used is chosen.
 
      _t_a_r_g_e_t_-_w_i_n_d_o_w specifies a window in the form _s_e_s_s_i_o_n:_w_i_n_d_o_w.  _s_e_s_s_i_o_n
      follows the same rules as for _t_a_r_g_e_t_-_s_e_s_s_i_o_n, and _w_i_n_d_o_w is looked for in
@@ -176,8 +177,6 @@ CCOOMMMMAANNDDSS
            set-window-option -t:0 monitor-activity on
 
            new-window ; split-window -d
-
-           bind-key D detach-client \; lock-server
 
 CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
      The following commands are available:
@@ -222,7 +221,14 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
                    (alias: llss)
              List all sessions managed by the server.
 
-     nneeww--sseessssiioonn [--dd] [--nn _w_i_n_d_o_w_-_n_a_m_e] [--ss _s_e_s_s_i_o_n_-_n_a_m_e] [_c_o_m_m_a_n_d]
+     lloocckk--cclliieenntt [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
+             Lock _t_a_r_g_e_t_-_c_l_i_e_n_t, see the lloocckk--sseerrvveerr command.
+
+     lloocckk--sseessssiioonn [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+             Lock all clients attached to _t_a_r_g_e_t_-_s_e_s_s_i_o_n.
+
+     nneeww--sseessssiioonn [--dd] [--nn _w_i_n_d_o_w_-_n_a_m_e] [--ss _s_e_s_s_i_o_n_-_n_a_m_e] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+             [_c_o_m_m_a_n_d]
                    (alias: nneeww)
              Create a new session with name _s_e_s_s_i_o_n_-_n_a_m_e.  The new session is
              attached to the current terminal unless --dd is given.  _w_i_n_d_o_w_-_n_a_m_e
@@ -231,6 +237,14 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
 
              If run from a terminal, any termios(4) special characters are
              saved and used for new windows in the new session.
+
+             If --tt is given, the new session is _g_r_o_u_p_e_d with _t_a_r_g_e_t_-_s_e_s_s_i_o_n.
+             This means they share the same set of windows - all windows from
+             _t_a_r_g_e_t_-_s_e_s_s_i_o_n are linked to the new session and any subsequent
+             new windows or windows being closed are applied to both sessions.
+             The current and previous window and any session options remain
+             independent and either session may be killed without affecting
+             the other.  Giving --nn or _c_o_m_m_a_n_d are invalid if --tt is used.
 
      rreeffrreesshh--cclliieenntt [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
                    (alias: rreeffrreesshh)
@@ -267,51 +281,54 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              This is entered when a command which produces output, such as
              lliisstt--kkeeyyss, is executed from a key binding.
 
-     _s_c_r_o_l_l _m_o_d_e
-             This is entered with the ssccrroollll--mmooddee command (bound to ‘=’ by
-             default) and permits the window history buffer to be inspected.
-
      _c_o_p_y _m_o_d_e
              This permits a section of a window or its history to be copied to
              a _p_a_s_t_e _b_u_f_f_e_r for later insertion into another window.  This
-             mode is entered with the ccooppyy--mmooddee command, bound to [‘’ by
+             mode is entered with the ccooppyy--mmooddee command, bound to ‘[’ by
              default.
 
      The keys available depend on whether emacs or vi mode is selected (see
      the mmooddee--kkeeyyss option).  The following keys are supported as appropriate
      for the mode:
 
-           FFuunnccttiioonn                vvii          eemmaaccss
-           Back to indentation     ^           M-m
-           Clear selection         Escape      C-g
-           Copy selection          Enter       M-w
-           Cursor down             j           Down
-           Cursor left             h           Left
-           Cursor right            l           Right
-           Cursor up               k           Up
-           Delete entire line      d           C-u
-           Delete to end of line   D           C-k
-           End of line             $           C-e
-           Goto line               g           g
-           Next page               C-f         Page down
-           Next word               w           M-f
-           Paste buffer            p           C-y
-           Previous page           C-u         Page up
-           Previous word           b           M-b
-           Quit mode               q           Escape
-           Search again            n           n
-           Search backward         ?           C-r
-           Search forward          /           C-s
-           Start of line           0           C-a
-           Start selection         Space       C-Space
-           Transpose chars                     C-t
+           FFuunnccttiioonn                vvii             eemmaaccss
+           Back to indentation     ^              M-m
+           Clear selection         Escape         C-g
+           Copy selection          Enter          M-w
+           Cursor down             j              Down
+           Cursor left             h              Left
+           Cursor right            l              Right
+           Cursor to bottom line   L
+           Cursor to middle line   M              M-r
+           Cursor to top line      H              M-R
+           Cursor up               k              Up
+           Delete entire line      d              C-u
+           Delete to end of line   D              C-k
+           End of line             $              C-e
+           Goto line               :              g
+           Half page down          C-d            M-Down
+           Half page up            C-u            M-Up
+           Next page               C-f            Page down
+           Next word               w              M-f
+           Paste buffer            p              C-y
+           Previous page           C-b            Page up
+           Previous word           b              M-b
+           Quit mode               q              Escape
+           Scroll down             C-Down or J    C-Down
+           Scroll up               C-Up or K      C-Up
+           Search again            n              n
+           Search backward         ?              C-r
+           Search forward          /              C-s
+           Start of line           0              C-a
+           Start selection         Space          C-Space
+           Transpose chars                        C-t
 
      These key bindings are defined in a set of named tables: _v_i_-_e_d_i_t and
      _e_m_a_c_s_-_e_d_i_t for keys used when line editing at the command prompt;
      _v_i_-_c_h_o_i_c_e and _e_m_a_c_s_-_c_h_o_i_c_e for keys used when choosing from lists (such
      as produced by the wwiinnddooww--cchhoooossee command) or in output mode; and _v_i_-_c_o_p_y
-     and _e_m_a_c_s_-_c_o_p_y used in copy and scroll modes.  The tables may be viewed
-     with the lliisstt--kkeeyyss command and keys modified or removed with bbiinndd--kkeeyy and
+     and _e_m_a_c_s_-_c_o_p_y used in copy mode.  The tables may be viewed with the
+     lliisstt--kkeeyyss command and keys modified or removed with bbiinndd--kkeeyy and
      uunnbbiinndd--kkeeyy.
 
      The paste buffer key pastes the first line from the top paste buffer on
@@ -321,10 +338,6 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
 
      ccooppyy--mmooddee [--uu] [--tt _t_a_r_g_e_t_-_p_a_n_e]
              Enter copy mode.  The --uu option scrolls one page up.
-
-     ssccrroollll--mmooddee [--uu] [--tt _t_a_r_g_e_t_-_p_a_n_e]
-             Enter scroll mode.  The --uu has the same meaning as in the
-             ccooppyy--mmooddee command.
 
      Each window displayed by ttmmuuxx may be split into one or more _p_a_n_e_s; each
      pane takes up a certain area of the display and is a separate terminal.
@@ -400,7 +413,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
 
      ddoowwnn--ppaannee [--tt _t_a_r_g_e_t_-_p_a_n_e]
                    (alias: ddoowwnnpp)
-             Move down a pane.
+             Change the active pane to the next pane (higher index).
 
      ffiinndd--wwiinnddooww [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] _m_a_t_c_h_-_s_t_r_i_n_g
                    (alias: ffiinnddww)
@@ -409,10 +422,11 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              dow is matched, it’ll be automatically selected, otherwise a
              choice list is shown.  This command only works from inside ttmmuuxx.
 
-     kkiillll--ppaannee [--tt _t_a_r_g_e_t_-_p_a_n_e]
+     kkiillll--ppaannee [--aa] [--tt _t_a_r_g_e_t_-_p_a_n_e]
                    (alias: kkiillllpp)
              Destroy the given pane.  If no panes remain in the containing
-             window, it is also destroyed.
+             window, it is also destroyed.  The --aa option kills all but the
+             pane given with --tt.
 
      kkiillll--wwiinnddooww [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w]
                    (alias: kkiillllww)
@@ -432,6 +446,10 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              is linked there.  If --kk is given and _d_s_t_-_w_i_n_d_o_w exists, it is
              killed, otherwise an error is generated.  If --dd is given, the
              newly linked window is not selected.
+
+     lliisstt--ppaanneess [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w]
+                   (alias: llsspp)
+             List the panes in the current window or in _t_a_r_g_e_t_-_w_i_n_d_o_w.
 
      lliisstt--wwiinnddoowwss [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: llssww)
@@ -464,6 +482,18 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
                    (alias: nneexxtt)
              Move to the next window in the session.  If --aa is used, move to
              the next window with a bell, activity or content alert.
+
+     ppiippee--ppaannee [--oo] [--tt _t_a_r_g_e_t_-_p_a_n_e] [_c_o_m_m_a_n_d]
+                   (alias: ppiippeepp)
+             Pipe any output sent by the program in _t_a_r_g_e_t_-_p_a_n_e to a shell
+             command.  A pane may only be piped to one command at a time, any
+             existing pipe is closed before _c_o_m_m_a_n_d is executed.  If no
+             _c_o_m_m_a_n_d is given, the current pipe (if any) is closed.
+
+             The --oo option only opens a new pipe if no previous pipe exists,
+             allowing a pipe to be toggled with a single key, for example:
+
+                   bind-key C-p pipe-pane -o ’cat >>~/output’
 
      pprreevviioouuss--wwiinnddooww [--aa] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
                    (alias: pprreevv)
@@ -538,21 +568,29 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
 
      uupp--ppaannee [--tt _t_a_r_g_e_t_-_p_a_n_e]
                    (alias: uupppp)
-             Move up a pane.
+             Change the active pane to the previous pane (lower index).
 
 KKEEYY BBIINNDDIINNGGSS
+     ttmmuuxx allows a command to be bound to most keys, with or without a prefix
+     key.  When specifying keys, most represent themselves (for example ‘A’ to
+     ‘Z’).  Ctrl keys may be prefixed with ‘C-’ or ‘^’, and Alt (meta) with
+     ‘M-’.  In addition, the following special key names are accepted: _B_S_p_a_c_e,
+     _B_T_a_b, _D_C (Delete), _E_n_d, _E_n_t_e_r, _E_s_c_a_p_e, _F_1 to _F_2_0, _H_o_m_e, _I_C (Insert),
+     _N_P_a_g_e (Page Up), _P_P_a_g_e (Page Down), _S_p_a_c_e, and _T_a_b.  Note that to bind
+     the ‘"’ or ‘’’ keys, quotation marks are necessary, for example:
+
+           bind-key ’"’ split-window
+           bind-key "’" select-prompt
+
      Commands related to key bindings are as follows:
 
      bbiinndd--kkeeyy [--ccnnrr] [--tt _k_e_y_-_t_a_b_l_e] _k_e_y _c_o_m_m_a_n_d [_a_r_g_u_m_e_n_t_s]
                    (alias: bbiinndd)
-             Bind key _k_e_y to _c_o_m_m_a_n_d.  Keys may be specified prefixed with
-             ‘C-’ or ‘^’ for Ctrl keys, or ‘M-’ for Alt (meta) keys.
-
-             By default (without --tt) the primary key bindings are modified
-             (those normally activated with the prefix key); in this case, if
-             --nn is specified, it is not necessary to use the prefix key,
-             _c_o_m_m_a_n_d is bound to _k_e_y alone.  The --rr flag indicates this key
-             may repeat, see the rreeppeeaatt--ttiimmee option.
+             Bind key _k_e_y to _c_o_m_m_a_n_d.  By default (without --tt) the primary key
+             bindings are modified (those normally activated with the prefix
+             key); in this case, if --nn is specified, it is not necessary to
+             use the prefix key, _c_o_m_m_a_n_d is bound to _k_e_y alone.  The --rr flag
+             indicates this key may repeat, see the rreeppeeaatt--ttiimmee option.
 
              If --tt is present, _k_e_y is bound in _k_e_y_-_t_a_b_l_e: the binding for com-
              mand mode with --cc or for normal mode without.  To view the
@@ -578,7 +616,8 @@ KKEEYY BBIINNDDIINNGGSS
              arguments are sent sequentially from first to last.
 
      sseenndd--pprreeffiixx [--tt _t_a_r_g_e_t_-_p_a_n_e]
-             Send the prefix key to a window as if it was pressed.
+             Send the prefix key to a window as if it was pressed.  If multi-
+             ple prefix keys are configured, only the first is sent.
 
      uunnbbiinndd--kkeeyy [--ccnn] [--tt _k_e_y_-_t_a_b_l_e] _k_e_y
                    (alias: uunnbbiinndd)
@@ -685,12 +724,21 @@ OOPPTTIIOONNSS
                      point they were created.
 
              lloocckk--aafftteerr--ttiimmee _n_u_m_b_e_r
-                     Lock the server after _n_u_m_b_e_r seconds of inactivity.  The
-                     default is off (set to 0).  This has no effect as a ses-
-                     sion option; it must be set as a global option using --gg.
-                     When passwords are entered incorrectly, ttmmuuxx follows the
-                     behaviour of login(1) and ignores further password
-                     attempts for an increasing timeout.
+                     Lock the session (like the lloocckk--sseessssiioonn command) after
+                     _n_u_m_b_e_r seconds of inactivity, or the entire server (all
+                     sessions) if the lloocckk--sseerrvveerr option is set.  The default
+                     is not to lock (set to 0).
+
+             lloocckk--ccoommmmaanndd _c_o_m_m_a_n_d
+                     Command to run when locking each client.  The default is
+                     to run lock(1) with --nnpp.
+
+             lloocckk--sseerrvveerr [oonn | ooffff]
+                     If this option is oonn (the default), instead of each ses-
+                     sion locking individually as each has been idle for
+                     lloocckk--aafftteerr--ttiimmee, the entire server will lock after _a_l_l
+                     sessions would have locked.  This has no effect as a ses-
+                     sion option; it must be set as a global option.
 
              mmeessssaaggee--aattttrr _a_t_t_r_i_b_u_t_e_s
                      Set status line message attributes, where _a_t_t_r_i_b_u_t_e_s is
@@ -707,8 +755,16 @@ OOPPTTIIOONNSS
              mmeessssaaggee--ffgg _c_o_l_o_u_r
                      Set status line message foreground colour.
 
-             pprreeffiixx _k_e_y
-                     Set the current prefix key.
+             mmoouussee--sseelleecctt--ppaannee [oonn | ooffff]
+                     If on, ttmmuuxx captures the mouse and when a window is split
+                     into multiple panes the mouse may be used to select the
+                     current pane.  The mouse click is also passed through to
+                     the application as normal.
+
+             pprreeffiixx _k_e_y_s
+                     Set the keys accepted as a prefix key.  _k_e_y_s is a comma-
+                     separated list of key names, each of which individually
+                     behave as the prefix key.
 
              rreeppeeaatt--ttiimmee _t_i_m_e
                      Allow multiple commands to be entered without pressing
@@ -777,18 +833,26 @@ OOPPTTIIOONNSS
                            ##                A literal ‘#’
 
                      The #(command) form executes ‘command’ as a shell command
-                     and inserts the first line of its output.  #[attributes]
-                     allows a comma-separated list of attributes to be speci-
-                     fied, these may be ‘fg=colour’ to set the foreground
-                     colour, ‘bg=colour’ to set the background colour, or one
-                     of the attributes described under the mmeessssaaggee--aattttrr
-                     option.  Examples are:
+                     and inserts the first line of its output.  Note that
+                     shell commands are only executed once at the interval
+                     specified by the ssttaattuuss--iinntteerrvvaall option: if the status
+                     line is redrawn in the meantime, the previous result is
+                     used.
+
+                     #[attributes] allows a comma-separated list of attributes
+                     to be specified, these may be ‘fg=colour’ to set the
+                     foreground colour, ‘bg=colour’ to set the background
+                     colour, the name of one of the attributes (listed under
+                     the mmeessssaaggee--aattttrr option) to turn an attribute on, or an
+                     attribute prefixed with ‘no’ to turn one off, for example
+                     nnoobbrriigghhtt.  Examples are:
 
                            #(sysctl vm.loadavg)
                            #[fg=yellow,bold]#(apm -l)%%#[default] [#S]
 
-                     Where appropriate, these may be prefixed with a number to
-                     specify the maximum length, for example ‘#24T’.
+                     Where appropriate, special character sequences may be
+                     prefixed with a number to specify the maximum length, for
+                     example ‘#24T’.
 
                      By default, UTF-8 in _s_t_r_i_n_g is not interpreted, to enable
                      UTF-8, use the ssttaattuuss--uuttff88 option.
@@ -938,8 +1002,8 @@ OOPPTTIIOONNSS
                      Set window modes foreground colour.
 
              mmooddee--kkeeyyss [vvii | eemmaaccss]
-                     Use vi or emacs-style key bindings in scroll, copy and
-                     choice modes.  Key bindings default to emacs.
+                     Use vi or emacs-style key bindings in copy and choice
+                     modes.  Key bindings default to emacs.
 
              mmooddee--mmoouussee [oonn | ooffff]
                      Mouse state in modes.  If on, ttmmuuxx will respond to mouse
@@ -960,6 +1024,10 @@ OOPPTTIIOONNSS
                      program running in it exits.  The window may be reacti-
                      vated with the rreessppaawwnn--wwiinnddooww command.
 
+             ssyynncchhrroonniizzee--ppaanneess [oonn | ooffff]
+                     Duplicate input to any pane to all other panes in the
+                     same window, except for panes that are not in output
+                     mode.
              uuttff88 [oonn | ooffff]
                      Instructs ttmmuuxx to expect UTF-8 sequences to appear in
                      this window.
@@ -1016,6 +1084,7 @@ EENNVVIIRROONNMMEENNTT
      Commands to alter and view the environment are:
 
      sseett--eennvviirroonnmmeenntt [--ggrruu] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n] _n_a_m_e [_v_a_l_u_e]
+                   (alias: sseetteennvv)
              Set or unset an environment variable.  If --gg is used, the change
              is made in the global environment; otherwise, it is applied to
              the session environment for _t_a_r_g_e_t_-_s_e_s_s_i_o_n.  The --uu flag unsets a
@@ -1023,6 +1092,7 @@ EENNVVIIRROONNMMEENNTT
              environment before starting a new process.
 
      sshhooww--eennvviirroonnmmeenntt [--gg] [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n]
+                   (alias: sshhoowweennvv)
              Display the environment for _t_a_r_g_e_t_-_s_e_s_s_i_o_n or the global environ-
              ment with --gg.  Variables removed from the environment are pre-
              fixed with ‘-’.
@@ -1159,20 +1229,19 @@ MMIISSCCEELLLLAANNEEOOUUSS
 
      lloocckk--sseerrvveerr
                    (alias: lloocckk)
-             Lock the server until a password is entered.
+             Lock each client individually by running the command specified by
+             the lloocckk--ccoommmmaanndd option.
+
+     rruunn--sshheellll _c_o_m_m_a_n_d
+                   (alias: rruunn)
+             Execute _c_o_m_m_a_n_d in the background without creating a window.
+             After the command finishes, any output to stdout is displayed in
+             output mode.  If _c_o_m_m_a_n_d doesn’t return success, the exit status
+             is also displayed.
 
      sseerrvveerr--iinnffoo
                    (alias: iinnffoo)
              Show server information and terminal details.
-
-     sseett--ppaasssswwoorrdd [--cc] _p_a_s_s_w_o_r_d
-                   (alias: ppaassss)
-             Set the server password.  If the --cc option is given, a pre-
-             encrypted password may be specified.  By default, the password is
-             blank, thus any entered password will be accepted when unlocking
-             the server (see the lloocckk--sseerrvveerr command).  To prevent variable
-             expansion when an encrypted password is read from a configuration
-             file, enclose it in single quotes (’).
 
 FFIILLEESS
      ~/.tmux.conf       Default ttmmuuxx configuration file.
