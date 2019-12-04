@@ -95,11 +95,15 @@ DESCRIPTION
 		   whether it will send UTF-8 characters to the terminal it is
 		   running (if not, they are replaced by ‘_’).
 
-     -v		   Request verbose logging.  This option may be specified mul-
-		   tiple times for increasing verbosity.  Log messages will be
-		   saved into tmux-client-PID.log and tmux-server-PID.log
-		   files in the current directory, where PID is the PID of the
-		   server or client process.
+     -v		   Request verbose logging.  Log messages will be saved into
+		   tmux-client-PID.log and tmux-server-PID.log files in the
+		   current directory, where PID is the PID of the server or
+		   client process.  If -v is specified twice, an additional
+		   tmux-out-PID.log file is generated with a copy of every-
+		   thing tmux writes to the terminal.
+
+		   The SIGUSR2 signal may be sent to the tmux server process
+		   to toggle logging between on (as if -v was given) and off.
 
      -V		   Report the tmux version.
 
@@ -434,8 +438,9 @@ CLIENTS AND SESSIONS
 
 	     The new session is attached to the current terminal unless -d is
 	     given.  window-name and shell-command are the name of and shell
-	     command to execute in the initial window.	If -d is used, -x and
-	     -y specify the size of the initial window.
+	     command to execute in the initial window.	With -d, the initial
+	     size is 80 x 24; -x and -y can be used to specify a different
+	     size.
 
 	     If run from a terminal, any termios(4) special characters are
 	     saved and used for new windows in the new session.
@@ -719,83 +724,100 @@ WINDOWS AND PANES
 	     the end of the visible pane.  The default is to capture only the
 	     visible contents of the pane.
 
-     choose-client [-F format] [-t target-window] [template]
-	     Put a window into client choice mode, allowing a client to be
-	     selected interactively from a list.  After a client is chosen,
-	     ‘%%’ is replaced by the client pty(4) path in template and the
-	     result executed as a command.  If template is not given, "detach-
-	     client -t ’%%’" is used.  For the meaning of the -F flag, see the
-	     FORMATS section.  This command works only if at least one client
-	     is attached.
+     choose-client [-N] [-F format] [-f filter] [-O sort-order] [-t
+	     target-pane] [template]
+	     Put a pane into client mode, allowing a client to be selected
+	     interactively from a list.	 The following keys may be used in
+	     client mode:
 
-     choose-session [-F format] [-t target-window] [template]
-	     Put a window into session choice mode, where a session may be
-	     selected interactively from a list.  When one is chosen, ‘%%’ is
-	     replaced by the session name in template and the result executed
-	     as a command.  If template is not given, "switch-client -t ’%%’"
-	     is used.  For the meaning of the -F flag, see the FORMATS sec-
-	     tion.  This command works only if at least one client is
-	     attached.
+		   Key	  Function
+		   Enter  Choose selected client
+		   Up	  Select previous client
+		   Down	  Select next client
+		   C-s	  Search by name
+		   n	  Repeat last search
+		   t	  Toggle if client is tagged
+		   T	  Tag no clients
+		   C-t	  Tag all clients
+		   d	  Detach selected client
+		   D	  Detach tagged clients
+		   x	  Detach and HUP selected client
+		   X	  Detach and HUP tagged clients
+		   z	  Suspend selected client
+		   Z	  Suspend tagged clients
+		   f	  Enter a format to filter items
+		   O	  Change sort order
+		   v	  Toggle preview
+		   q	  Exit mode
 
-     choose-tree [-suw] [-b session-template] [-c window-template] [-S format]
-	     [-W format] [-t target-window]
-	     Put a window into tree choice mode, where either sessions or win-
-	     dows may be selected interactively from a list.  By default, win-
-	     dows belonging to a session are indented to show their relation-
-	     ship to a session.
+	     After a client is chosen, ‘%%’ is replaced by the client name in
+	     template and the result executed as a command.  If template is
+	     not given, "detach-client -t ’%%’" is used.
 
-	     Note that the choose-window and choose-session commands are wrap-
-	     pers around choose-tree.
+	     -O specifies the initial sort order: one of ‘name’, ‘size’,
+	     ‘creation’, or ‘activity’.	 -f specifies an initial filter: the
+	     filter is a format - if it evaluates to zero, the item in the
+	     list is not shown, otherwise it is shown.	If a filter would lead
+	     to an empty list, it is ignored.  -F specifies the format for
+	     each item in the list.  -N starts without the preview.  This com-
+	     mand works only if at least one client is attached.
 
-	     If -s is given, will show sessions.  If -w is given, will show
-	     windows.
+     choose-tree [-Nsw] [-F format] [-f filter] [-O sort-order] [-t
+	     target-pane] [template]
+	     Put a pane into tree mode, where a session, window or pane may be
+	     chosen interactively from a list.	-s starts with sessions col-
+	     lapsed and -w with windows collapsed.  The following keys may be
+	     used in tree mode:
 
-	     By default, the tree is collapsed and sessions must be expanded
-	     to windows with the right arrow key.  The -u option will start
-	     with all sessions expanded instead.
+		   Key	  Function
+		   Enter  Choose selected item
+		   Up	  Select previous item
+		   Down	  Select next item
+		   <	  Scroll list of previews left
+		   >	  Scroll list of previews right
+		   C-s	  Search by name
+		   n	  Repeat last search
+		   t	  Toggle if item is tagged
+		   T	  Tag no items
+		   C-t	  Tag all items
+		   :	  Run a command for each tagged item
+		   f	  Enter a format to filter items
+		   O	  Change sort order
+		   v	  Toggle preview
+		   q	  Exit mode
 
-	     If -b is given, will override the default session command.	 Note
-	     that ‘%%’ can be used and will be replaced with the session name.
-	     The default option if not specified is "switch-client -t ’%%’".
-	     If -c is given, will override the default window command.	Like
-	     -b, ‘%%’ can be used and will be replaced with the session name
-	     and window index.	When a window is chosen from the list, the
-	     session command is run before the window command.
+	     After a session, window or pane is chosen, ‘%%’ is replaced by
+	     the target in template and the result executed as a command.  If
+	     template is not given, "switch-client -t ’%%’" is used.
 
-	     -S uses format instead of the default session format and -W
-	     instead of the default window format.  For the meaning of format,
-	     see the FORMATS section.
+	     -O specifies the initial sort order: one of ‘index’, ‘name’, or
+	     ‘time’.  -f specifies an initial filter: the filter is a format -
+	     if it evaluates to zero, the item in the list is not shown, oth-
+	     erwise it is shown.  If a filter would lead to an empty list, it
+	     is ignored.  -F specifies the format for each item in the tree.
+	     -N starts without the preview.  This command works only if at
+	     least one client is attached.
 
-	     This command works only if at least one client is attached.
-
-     choose-window [-F format] [-t target-window] [template]
-	     Put a window into window choice mode, where a window may be cho-
-	     sen interactively from a list.  After a window is selected, ‘%%’
-	     is replaced by the session name and window index in template and
-	     the result executed as a command.	If template is not given,
-	     "select-window -t ’%%’" is used.  For the meaning of the -F flag,
-	     see the FORMATS section.  This command works only if at least one
-	     client is attached.
-
-     display-panes [-t target-client] [template]
+     display-panes [-d duration] [-t target-client] [template]
 		   (alias: displayp)
 	     Display a visible indicator of each pane shown by target-client.
-	     See the display-panes-time, display-panes-colour, and
-	     display-panes-active-colour session options.  While the indicator
-	     is on screen, a pane may be chosen with the ‘0’ to ‘9’ keys,
-	     which will cause template to be executed as a command with ‘%%’
-	     substituted by the pane ID.  The default template is "select-pane
-	     -t ’%%’".
+	     See the display-panes-colour and display-panes-active-colour ses-
+	     sion options.  The indicator is closed when a key is pressed or
+	     duration milliseconds have passed.	 If -d is not given,
+	     display-panes-time is used.  A duration of zero means the indica-
+	     tor stays until a key is pressed.	While the indicator is on
+	     screen, a pane may be chosen with the ‘0’ to ‘9’ keys, which will
+	     cause template to be executed as a command with ‘%%’ substituted
+	     by the pane ID.  The default template is "select-pane -t ’%%’".
 
-     find-window [-CNT] [-F format] [-t target-window] match-string
+     find-window [-CNT] [-t target-pane] match-string
 		   (alias: findw)
 	     Search for the fnmatch(3) pattern match-string in window names,
 	     titles, and visible content (but not history).  The flags control
 	     matching behavior: -C matches only visible window contents, -N
 	     matches only the window name and -T matches only the window
-	     title.  The default is -CNT.  If only one window is matched,
-	     it’ll be automatically selected, otherwise a choice list is
-	     shown.  For the meaning of the -F flag, see the FORMATS section.
+	     title.  The default is -CNT.
+
 	     This command works only if at least one client is attached.
 
      join-pane [-bdhv] [-l size | -p percentage] [-s src-pane] [-t dst-pane]
@@ -944,21 +966,24 @@ WINDOWS AND PANES
 	     -M begins mouse resizing (only valid if bound to a mouse key
 	     binding, see MOUSE SUPPORT).
 
-     respawn-pane [-k] [-t target-pane] [shell-command]
+     respawn-pane [-c start-directory] [-k] [-t target-pane] [shell-command]
 		   (alias: respawnp)
 	     Reactivate a pane in which the command has exited (see the
 	     remain-on-exit window option).  If shell-command is not given,
 	     the command used when the pane was created is executed.  The pane
 	     must be already inactive, unless -k is given, in which case any
-	     existing command is killed.
+	     existing command is killed.  -c specifies a new working directory
+	     for the pane.
 
-     respawn-window [-k] [-t target-window] [shell-command]
+     respawn-window [-c start-directory] [-k] [-t target-window]
+	     [shell-command]
 		   (alias: respawnw)
 	     Reactivate a window in which the command has exited (see the
 	     remain-on-exit window option).  If shell-command is not given,
 	     the command used when the window was created is executed.	The
 	     window must be already inactive, unless -k is given, in which
-	     case any existing command is killed.
+	     case any existing command is killed.  -c specifies a new working
+	     directory for the window.
 
      rotate-window [-DU] [-t target-window]
 		   (alias: rotatew)
@@ -973,7 +998,7 @@ WINDOWS AND PANES
 	     mands.  -o applies the last set layout if possible (undoes the
 	     most recent layout change).
 
-     select-pane [-DdegLlMmRU] [-P style] [-t target-pane]
+     select-pane [-DdegLlMmRU] [-P style] [-T title] [-t target-pane]
 		   (alias: selectp)
 	     Make pane target-pane the active pane in window target-window, or
 	     set its style (with -P).  If one of -D, -L, -R, or -U is used,
@@ -994,6 +1019,8 @@ WINDOWS AND PANES
 		   select-pane -t:.1 -P ’bg=red’
 
 	     -g shows the current pane style.
+
+	     -T sets the pane title.
 
      select-window [-lnpT] [-t target-window]
 		   (alias: selectw)
@@ -1136,14 +1163,14 @@ OPTIONS
 
      Commands which set options are as follows:
 
-     set-option [-agoqsuw] [-t target-session | target-window] option value
+     set-option [-aFgoqsuw] [-t target-session | target-window] option value
 		   (alias: set)
 	     Set a window option with -w (equivalent to the set-window-option
 	     command), a server option with -s, otherwise a session option.
-	     If -g is given, the global session or window option is set.  The
-	     -u flag unsets an option, so a session inherits the option from
-	     the global options (or with -g, restores a global option to the
-	     default).
+	     If -g is given, the global session or window option is set.  -F
+	     expands formats in the option value.  The -u flag unsets an
+	     option, so a session inherits the option from the global options
+	     (or with -g, restores a global option to the default).
 
 	     The -o flag prevents setting an option that is already set and
 	     the -q flag suppresses errors about unknown or ambiguous options.
@@ -1179,7 +1206,7 @@ OPTIONS
 		     unknown command matches name, it is replaced with value.
 		     For example, after:
 
-			   set -s command-alias[2] zoom=’resize-pane -Z’
+			   set -s command-alias[100] zoom=’resize-pane -Z’
 
 		     Using:
 
@@ -1223,13 +1250,22 @@ OPTIONS
 		     Set the number of error or information messages to save
 		     in the message log for each client.  The default is 100.
 
-	     set-clipboard [on | off]
+	     set-clipboard [on | external | off]
 		     Attempt to set the terminal clipboard content using the
-		     \e]52;...\007 xterm(1) escape sequences.  This option is
-		     on by default if there is an Ms entry in the terminfo(5)
-		     description for the client terminal.  Note that this fea-
-		     ture needs to be enabled in xterm(1) by setting the
-		     resource:
+		     xterm(1) escape sequence, if there is an Ms entry in the
+		     terminfo(5) description (see the TERMINFO EXTENSIONS sec-
+		     tion).
+
+		     If set to on, tmux will both accept the escape sequence
+		     to create a buffer and attempt to set the terminal clip-
+		     board.  If set to external, tmux will attempt to set the
+		     terminal clipboard but ignore attempts by applications to
+		     set tmux buffers.	If off, tmux will neither accept the
+		     clipboard escape sequence nor attempt to set the clip-
+		     board.
+
+		     Note that this feature needs to be enabled in xterm(1) by
+		     setting the resource:
 
 			   disallowedWindowOps: 20,21,SetXprop
 
@@ -1252,6 +1288,17 @@ OPTIONS
 
 	     Available session options are:
 
+	     activity-action [any | none | current | other]
+		     Set action on window activity when monitor-activity is
+		     on.  any means activity in any window linked to a session
+		     causes a bell or message (depending on visual-activity)
+		     in the current window of that session, none means all
+		     activity is ignored (equivalent to monitor-activity being
+		     off), current means only activity in windows other than
+		     the current window are ignored and other means activity
+		     in the current window is ignored but not those in other
+		     windows.
+
 	     assume-paste-time milliseconds
 		     If keys are entered faster than one in milliseconds, they
 		     are assumed to have been pasted rather than typed and
@@ -1264,15 +1311,8 @@ OPTIONS
 		     zero.
 
 	     bell-action [any | none | current | other]
-		     Set action on window bell.	 any means a bell in any win-
-		     dow linked to a session causes a bell in the current win-
-		     dow of that session, none means all bells are ignored,
-		     current means only bells in windows other than the cur-
-		     rent window are ignored and other means bells in the cur-
-		     rent window are ignored but not those in other windows.
-
-	     bell-on-alert [on | off]
-		     If on, ring the terminal bell when an alert occurs.
+		     Set action on a bell in a window when monitor-bell is on.
+		     The values are the same as those for activity-action.
 
 	     default-command shell-command
 		     Set the command used for new windows (if not specified
@@ -1409,6 +1449,10 @@ OPTIONS
 		     String used to set the window title if set-titles is on.
 		     Formats are expanded, see the FORMATS section.
 
+	     silence-action [any | none | current | other]
+		     Set action on window silence when monitor-silence is on.
+		     The values are the same as those for activity-action.
+
 	     status [on | off]
 		     Show or hide the status line.
 
@@ -1461,7 +1505,7 @@ OPTIONS
 
 	     status-right string
 		     Display string to the right of the status line.  By
-		     default, the current window title in double quotes, the
+		     default, the current pane title in double quotes, the
 		     date and the time are shown.  As with status-left, string
 		     will be passed to strftime(3) and character pairs are
 		     replaced.
@@ -1487,20 +1531,34 @@ OPTIONS
 		     from the session environment (as if -r was given to the
 		     set-environment command).
 
-	     visual-activity [on | off]
-		     If on, display a status line message when activity occurs
-		     in a window for which the monitor-activity window option
-		     is enabled.
+	     user-keys[] key
+		     Set list of user-defined key escape sequences.  Each item
+		     is associated with a key named ‘User0’, ‘User1’, and so
+		     on.
 
-	     visual-bell [on | off]
-		     If this option is on, a message is shown on a bell
-		     instead of it being passed through to the terminal (which
-		     normally makes a sound).  Also see the bell-action
-		     option.
+		     For example:
 
-	     visual-silence [on | off]
+			   set -s user-keys[0] "\e[5;30012~"
+			   bind User0 resize-pane -L 3
+
+	     visual-activity [on | off | both]
+		     If on, display a message instead of sending a bell when
+		     activity occurs in a window for which the
+		     monitor-activity window option is enabled.	 If set to
+		     both, a bell and a message are produced.
+
+	     visual-bell [on | off | both]
+		     If on, a message is shown on a bell in a window for which
+		     the monitor-bell window option is enabled instead of it
+		     being passed through to the terminal (which normally
+		     makes a sound).  If set to both, a bell and a message are
+		     produced.	Also see the bell-action option.
+
+	     visual-silence [on | off | both]
 		     If monitor-silence is enabled, prints a message after the
-		     interval has expired on a given window.
+		     interval has expired on a given window instead of sending
+		     a bell.  If set to both, a bell and a message are pro-
+		     duced.
 
 	     word-separators string
 		     Sets the session’s conception of what characters are con-
@@ -1508,10 +1566,10 @@ OPTIONS
 		     previous word commands in copy mode.  The default is
 		     ‘ -_@’.
 
-     set-window-option [-agoqu] [-t target-window] option value
+     set-window-option [-aFgoqu] [-t target-window] option value
 		   (alias: setw)
-	     Set a window option.  The -a, -g, -o, -q and -u flags work simi-
-	     larly to the set-option command.
+	     Set a window option.  The -a, -F, -g, -o, -q and -u flags work
+	     similarly to the set-option command.
 
 	     Supported window options are:
 
@@ -1583,6 +1641,10 @@ OPTIONS
 	     monitor-activity [on | off]
 		     Monitor for activity in the window.  Windows with activ-
 		     ity are highlighted in the status line.
+
+	     monitor-bell [on | off]
+		     Monitor for a bell in the window.	Windows with a bell
+		     are highlighted in the status line.
 
 	     monitor-silence [interval]
 		     Monitor for silence (no activity) in the window within
@@ -1716,38 +1778,42 @@ HOOKS
 
      In addition, the following hooks are available:
 
-     alert-activity    Run when a window has activity.	See monitor-activity.
+     alert-activity	     Run when a window has activity.  See
+			     monitor-activity.
 
-     alert-bell	       Run when a window has received a bell.
+     alert-bell		     Run when a window has received a bell.  See
+			     monitor-bell.
 
-     alert-silence     Run when a window has been silent.  See
-		       monitor-silence.
+     alert-silence	     Run when a window has been silent.	 See
+			     monitor-silence.
 
-     client-attached   Run when a client is attached.
+     client-attached	     Run when a client is attached.
 
-     client-detached   Run when a client is detached
+     client-detached	     Run when a client is detached
 
-     client-resized    Run when a client is resized.
+     client-resized	     Run when a client is resized.
 
-     client-session-changed
-		       Run when a client’s attached session is changed.
+     client-session-changed  Run when a client’s attached session is changed.
 
-     pane-died	       Run when the program running in a pane exits, but
-		       remain-on-exit is on so the pane has not closed.
+     pane-died		     Run when the program running in a pane exits, but
+			     remain-on-exit is on so the pane has not closed.
 
-     pane-exited       Run when the program running in a pane exits.
+     pane-exited	     Run when the program running in a pane exits.
 
-     session-created   Run when a new session created.
+     pane-set-clipboard	     Run when the terminal clipboard is set using the
+			     xterm(1) escape sequence.
 
-     session-closed    Run when a session closed.
+     session-created	     Run when a new session created.
 
-     session-renamed   Run when a session is renamed.
+     session-closed	     Run when a session closed.
 
-     window-linked     Run when a window is linked into a session.
+     session-renamed	     Run when a session is renamed.
 
-     window-renamed    Run when a window is renamed.
+     window-linked	     Run when a window is linked into a session.
 
-     window-unlinked   Run when a window is unlinked from a session.
+     window-renamed	     Run when a window is renamed.
+
+     window-unlinked	     Run when a window is unlinked from a session.
 
      Hooks are managed with these commands:
 
@@ -1806,10 +1872,16 @@ FORMATS
      attached’ if it is unattached, or ‘#{?automatic-rename,yes,no}’ will
      include ‘yes’ if automatic-rename is enabled, or ‘no’ if not.
 
-     Simple comparisons may be expressed by prefixing two comma-separated
-     alternatives by ‘==’ or ‘!=’ and a colon.	For example
-     ‘#{==:#{host},myhost}’ will be replaced by ‘1’ if running on ‘myhost’,
-     otherwise by ‘0.’
+     Comparisons may be expressed by prefixing two comma-separated alterna-
+     tives by ‘==’ or ‘!=’ and a colon.	 For example ‘#{==:#{host},myhost}’
+     will be replaced by ‘1’ if running on ‘myhost’, otherwise by ‘0’.	An ‘m’
+     specifies an fnmatch(3) comparison where the first argument is the pat-
+     tern and the second the string to compare, for example
+     ‘#{m:*foo*,#{host}}’.  ‘||’ and ‘&&’ evaluate to true if either or both
+     of two comma-separated alternatives are true, for example
+     ‘#{||,#{pane_in_mode},#{alternate_on}}’.  A ‘C’ performs a search for an
+     fnmatch(3) pattern in the pane content and evaluates to zero if not
+     found, or a line number if found.
 
      A limit may be placed on the length of the resultant string by prefixing
      it by an ‘=’, a number and a colon.  Positive numbers count from the
@@ -1837,11 +1909,12 @@ FORMATS
      alternate_on		     If pane is in alternate screen
      alternate_saved_x		     Saved cursor X in alternate screen
      alternate_saved_y		     Saved cursor Y in alternate screen
+     buffer_created		     Time buffer created
      buffer_name		     Name of buffer
      buffer_sample		     Sample of start of buffer
      buffer_size		     Size of the specified buffer in bytes
-     client_activity		     Integer time client last had activity
-     client_created		     Integer time client created
+     client_activity		     Time client last had activity
+     client_created		     Time client created
      client_control_mode	     1 if client is in control mode
      client_discarded		     Bytes discarded when client behind
      client_height		     Height of client
@@ -1886,11 +1959,17 @@ FORMATS
      mouse_standard_flag	     Pane mouse standard flag
      mouse_all_flag		     Pane mouse all flag
      pane_active		     1 if active pane
+     pane_at_bottom		     1 if pane is at the bottom of window
+     pane_at_left		     1 if pane is at the left of window
+     pane_at_right		     1 if pane is at the right of window
+     pane_at_top		     1 if pane is at the top of window
      pane_bottom		     Bottom of pane
      pane_current_command	     Current command if available
      pane_current_path		     Current path if available
      pane_dead			     1 if pane is dead
      pane_dead_status		     Exit status of process in dead pane
+     pane_format		     1 if format is for a pane (not assuming
+				     the current)
      pane_height		     Height of pane
      pane_id		    #D	     Unique pane ID
      pane_in_mode		     If pane is in a mode
@@ -1899,6 +1978,7 @@ FORMATS
      pane_left			     Left of pane
      pane_mode			     Name of pane mode, if any.
      pane_pid			     PID of first process in pane
+     pane_pipe			     1 if pane is being piped
      pane_right			     Right of pane
      pane_search_string		     Last search string in copy mode
      pane_start_command		     Command pane started with
@@ -1912,11 +1992,14 @@ FORMATS
      scroll_region_lower	     Bottom of scroll region in pane
      scroll_region_upper	     Top of scroll region in pane
      scroll_position		     Scroll position in copy mode
+     selection_present		     1 if selection started in copy mode
      session_alerts		     List of window indexes with alerts
      session_attached		     Number of clients session is attached to
-     session_activity		     Integer time of session last activity
-     session_created		     Integer time session created
-     session_last_attached	     Integer time session last attached
+     session_activity		     Time of session last activity
+     session_created		     Time session created
+     session_format		     1 if format is for a session (not
+				     assuming the current)
+     session_last_attached	     Time session last attached
      session_group		     Name of session group
      session_grouped		     1 if session in a group
      session_height		     Height of session
@@ -1929,12 +2012,13 @@ FORMATS
      socket_path		     Server socket path
      start_time			     Server start time
      version			     Server version
-     window_activity		     Integer time of window last activity
+     window_activity		     Time of window last activity
      window_activity_flag	     1 if window has activity
      window_active		     1 if window active
      window_bell_flag		     1 if window has bell
-     window_find_matches	     Matched data from the find-window
      window_flags	    #F	     Window flags
+     window_format		     1 if format is for a window (not assuming
+				     the current)
      window_height		     Height of window
      window_id			     Unique window ID
      window_index	    #I	     Index of window
@@ -1957,12 +2041,11 @@ NAMES AND TITLES
      names, which may be used to specify them in targets and are displayed in
      the status line and various lists: the name is the tmux identifier for a
      window or session.	 Only panes have titles.  A pane’s title is typically
-     set by the program running inside the pane and is not modified by tmux.
-     It is the same mechanism used to set for example the xterm(1) window
-     title in an X(7) window manager.  Windows themselves do not have titles -
-     a window’s title is the title of its active pane.	tmux itself may set
-     the title of the terminal in which the client is running, see the
-     set-titles option.
+     set by the program running inside the pane using an escape sequence (like
+     it would set the xterm(1) window title in X(7)).  Windows themselves do
+     not have titles - a window’s title is the title of its active pane.  tmux
+     itself may set the title of the terminal in which the client is running,
+     see the set-titles option.
 
      A session’s name is set with the new-session and rename-session commands.
      A window’s name is set with one of:
@@ -1980,6 +2063,8 @@ NAMES AND TITLES
      can be set via the OSC title setting sequence, for example:
 
 	   $ printf ’\033]2;My Title\033\\’
+
+     It can also be modified with the select-pane -T command.
 
 ENVIRONMENT
      When the server is started, tmux copies the environment into the global
@@ -2033,8 +2118,10 @@ STATUS LINE
 	   Symbol    Meaning
 	   *	     Denotes the current window.
 	   -	     Marks the last window (previously selected).
-	   #	     Window is monitored and activity has been detected.
-	   !	     A bell has occurred in the window.
+	   #	     Window activity is monitored and activity has been
+				detected.
+	   !	     Window bells are monitored and a bell has occurred in the
+				window.
 	   ~	     The window has been silent for the monitor-silence
 				interval.
 	   M	     The window contains the marked pane.
@@ -2136,14 +2223,39 @@ BUFFERS
 
      The buffer commands are as follows:
 
-     choose-buffer [-F format] [-t target-window] [template]
-	     Put a window into buffer choice mode, where a buffer may be cho-
-	     sen interactively from a list.  After a buffer is selected, ‘%%’
-	     is replaced by the buffer name in template and the result exe-
-	     cuted as a command.  If template is not given, "paste-buffer -b
-	     ’%%’" is used.  For the meaning of the -F flag, see the FORMATS
-	     section.  This command works only if at least one client is
-	     attached.
+     choose-buffer [-N] [-F format] [-f filter] [-O sort-order] [-t
+	     target-pane] [template]
+	     Put a pane into buffer mode, where a buffer may be chosen inter-
+	     actively from a list.  The following keys may be used in buffer
+	     mode:
+
+		   Key	  Function
+		   Enter  Choose selected buffer
+		   Up	  Select previous buffer
+		   Down	  Select next buffer
+		   C-s	  Search by name or content
+		   n	  Repeat last search
+		   t	  Toggle if buffer is tagged
+		   T	  Tag no buffers
+		   C-t	  Tag all buffers
+		   d	  Delete selected buffer
+		   D	  Delete tagged buffers
+		   f	  Enter a format to filter items
+		   O	  Change sort order
+		   v	  Toggle preview
+		   q	  Exit mode
+
+	     After a buffer is chosen, ‘%%’ is replaced by the buffer name in
+	     template and the result executed as a command.  If template is
+	     not given, "paste-buffer -b ’%%’" is used.
+
+	     -O specifies the initial sort order: one of ‘time’, ‘name’ or
+	     ‘size’.  -f specifies an initial filter: the filter is a format -
+	     if it evaluates to zero, the item in the list is not shown, oth-
+	     erwise it is shown.  If a filter would lead to an empty list, it
+	     is ignored.  -F specifies the format for each item in the list.
+	     -N starts without the preview.  This command works only if at
+	     least one client is attached.
 
      clear-history [-t target-pane]
 		   (alias: clearhist)
