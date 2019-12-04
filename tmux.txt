@@ -60,10 +60,6 @@ DESCRIPTION
 		   report an error and exit without executing further com-
 		   mands.
 
-     -l		   Behave as a login shell.  This flag currently has no effect
-		   and is for compatibility with other shells when using tmux
-		   as a login shell.
-
      -L socket-name
 		   tmux stores the server socket in a directory under /tmp;
 		   the default socket is named default.	 This option allows a
@@ -74,6 +70,10 @@ DESCRIPTION
 
 		   If the socket is accidentally removed, the SIGUSR1 signal
 		   may be sent to the tmux server process to recreate it.
+
+     -l		   Behave as a login shell.  This flag currently has no effect
+		   and is for compatibility with other shells when using tmux
+		   as a login shell.
 
      -q		   Set the quiet server option to prevent the server sending
 		   various informational messages.
@@ -109,20 +109,65 @@ KEY BINDINGS
      tmux may be controlled from an attached client by using a key combination
      of a prefix key, ‘C-b’ (Ctrl-b) by default, followed by a command key.
 
-     Some of the default key bindings are:
+     The default command key bindings are:
 
-	   c	   Create a new window.
-	   d	   Detach the current client.
-	   l	   Move to the previously selected window.
-	   n	   Change to the next window.
-	   p	   Change to the previous window.
-	   &	   Kill the current window.
-	   ,	   Rename the current window.
-	   ?	   List all key bindings.
+	   C-b	       Send the prefix key (C-b) through to the application.
+	   C-o	       Rotate the panes in the current window forwards.
+	   C-z	       Suspend the tmux client.
+	   !	       Break the current pane out of the window.
+	   "	       Split the current pane into two, top and bottom.
+	   #	       List all paste buffers.
+	   %	       Split the current pane into two, left and right.
+	   &	       Kill the current window.
+	   ’	       Prompt for a window index to select.
+	   ,	       Rename the current window.
+	   -	       Delete the most recently copied buffer of text.
+	   .	       Prompt for an index to move the current window.
+	   0 to 9      Select windows 0 to 9.
+	   :	       Enter the tmux command prompt.
+	   =	       Choose which buffer to paste interactively from a list.
+	   ?	       List all key bindings.
+	   D	       Choose a client to detach.
+	   [	       Enter copy mode to copy text or view the history.
+	   ]	       Paste the most recently copied buffer of text.
+	   c	       Create a new window.
+	   d	       Detach the current client.
+	   f	       Prompt to search for text in open windows.
+	   i	       Display some information about the current window.
+	   l	       Move to the previously selected window.
+	   n	       Change to the next window.
+	   o	       Select the next pane in the current window.
+	   p	       Change to the previous window.
+	   q	       Briefly display pane indexes.
+	   r	       Force redraw of the attached client.
+	   s	       Select a new session for the attached client interac-
+		       tively.
+	   t	       Show the time.
+	   w	       Choose the current window interactively.
+	   x	       Kill the current pane.
+	   {	       Swap the current pane with the previous pane.
+	   }	       Swap the current pane with the next pane.
+	   ~	       Show previous messages from tmux, if any.
+	   Page Up     Enter copy mode and scroll one page up.
+	   Up, Down
+	   Left, Right
+		       Change to the pane above, below, to the left, or to the
+		       right of the current pane.
+	   M-1 to M-5  Arrange panes in one of the five preset layouts: even-
+		       horizontal, even-vertical, main-horizontal, main-verti-
+		       cal, or tiled.
+	   M-n	       Move to the next window with a bell or activity marker.
+	   M-o	       Rotate the panes in the current window backwards.
+	   M-p	       Move to the previous window with a bell or activity
+		       marker.
+	   C-Up, C-Down
+	   C-Left, C-Right
+		       Resize the current pane in steps of one cell.
+	   M-Up, M-Down
+	   M-Left, M-Right
+		       Resize the current pane in steps of five cells.
 
-     A complete list may be obtained with the list-keys command (bound to ‘?’
-     by default).  Key bindings may be changed with the bind-key and
-     unbind-key commands.
+     Key bindings may be changed with the bind-key and unbind-key commands.
 
 COMMANDS
      This section contains a list of the commands supported by tmux.  Most
@@ -163,9 +208,18 @@ COMMANDS
      sion:mywindow.1.  If the pane index is omitted, the currently active pane
      in the specified window is used.  If neither a colon nor period appears,
      tmux first attempts to use the argument as a pane index; if that fails,
-     it is looked up as for target-window.  One of the strings top, bottom,
-     left, right, top-left, top-right, bottom-left or bottom-right may be used
+     it is looked up as for target-window.  A ‘+’ or ‘-’ indicate the next or
+     previous pane index, respectively.	 One of the strings top, bottom, left,
+     right, top-left, top-right, bottom-left or bottom-right may be used
      instead of a pane index.
+
+     The special characters ‘+’ and ‘-’ may be followed by an offset, for
+     example:
+
+	   select-window -t:+2
+
+     When dealing with a session that doesn’t contain sequential window
+     indexes, they will be correctly skipped.
 
      shell-command arguments are sh(1) commands.  These must be passed as a
      single item, which typically means quoting them, for example:
@@ -260,9 +314,11 @@ CLIENTS AND SESSIONS
 	     List all sessions managed by the server.
 
      lock-client [-t target-client]
+		   (alias: lockc)
 	     Lock target-client, see the lock-server command.
 
      lock-session [-t target-session]
+		   (alias: locks)
 	     Lock all clients attached to target-session.
 
      new-session [-d] [-n window-name] [-s session-name] [-t target-session]
@@ -321,61 +377,60 @@ CLIENTS AND SESSIONS
 
 WINDOWS AND PANES
      A tmux window may be in one of several modes.  The default permits direct
-     access to the terminal attached to the window.  The others are:
-
-     output mode
-	     This is entered when a command which produces output, such as
-	     list-keys, is executed from a key binding.
-
-     copy mode
-	     This permits a section of a window or its history to be copied to
-	     a paste buffer for later insertion into another window.  This
-	     mode is entered with the copy-mode command, bound to ‘[’ by
-	     default.
+     access to the terminal attached to the window.  The other is copy mode,
+     which permits a section of a window or its history to be copied to a
+     paste buffer for later insertion into another window.  This mode is
+     entered with the copy-mode command, bound to ‘[’ by default.  It is also
+     entered when a command that produces output, such as list-keys, is exe-
+     cuted from a key binding.
 
      The keys available depend on whether emacs or vi mode is selected (see
      the mode-keys option).  The following keys are supported as appropriate
      for the mode:
 
-	   Function		     vi		     emacs
-	   Back to indentation	     ^		     M-m
-	   Bottom of history	     G		     M-<
-	   Clear selection	     Escape	     C-g
-	   Copy selection	     Enter	     M-w
-	   Cursor down		     j		     Down
-	   Cursor left		     h		     Left
-	   Cursor right		     l		     Right
-	   Cursor to bottom line     L
-	   Cursor to middle line     M		     M-r
-	   Cursor to top line	     H		     M-R
-	   Cursor up		     k		     Up
-	   Delete entire line	     d		     C-u
-	   Delete to end of line     D		     C-k
-	   End of line		     $		     C-e
-	   Go to line		     :		     g
-	   Half page down	     C-d	     M-Down
-	   Half page up		     C-u	     M-Up
-	   Next page		     C-f	     Page down
-	   Next space		     W
-	   Next space, end of word   E
-	   Next word		     w
-	   Next word end	     e		     M-f
-	   Paste buffer		     p		     C-y
-	   Previous page	     C-b	     Page up
-	   Previous word	     b		     M-b
-	   Previous space	     B
-	   Quit mode		     q		     Escape
-	   Rectangle toggle	     v		     R
-	   Scroll down		     C-Down or C-e   C-Down
-	   Scroll up		     C-Up or C-y     C-Up
-	   Search again		     n		     n
-	   Search again in reverse   N		     N
-	   Search backward	     ?		     C-r
-	   Search forward	     /		     C-s
-	   Start of line	     0		     C-a
-	   Start selection	     Space	     C-Space
-	   Top of history	     g		     M->
-	   Transpose chars			     C-t
+	   Function			vi		emacs
+	   Back to indentation		^		M-m
+	   Bottom of history		G		M-<
+	   Clear selection		Escape		C-g
+	   Copy selection		Enter		M-w
+	   Cursor down			j		Down
+	   Cursor left			h		Left
+	   Cursor right			l		Right
+	   Cursor to bottom line	L
+	   Cursor to middle line	M		M-r
+	   Cursor to top line		H		M-R
+	   Cursor up			k		Up
+	   Delete entire line		d		C-u
+	   Delete to end of line	D		C-k
+	   End of line			$		C-e
+	   Go to line			:		g
+	   Half page down		C-d		M-Down
+	   Half page up			C-u		M-Up
+	   Jump forward			f		f
+	   Jump backward		F		F
+	   Jump again			;		;
+	   Jump again in reverse	,		,
+	   Next page			C-f		Page down
+	   Next space			W
+	   Next space, end of word	E
+	   Next word			w
+	   Next word end		e		M-f
+	   Paste buffer			p		C-y
+	   Previous page		C-b		Page up
+	   Previous word		b		M-b
+	   Previous space		B
+	   Quit mode			q		Escape
+	   Rectangle toggle		v		R
+	   Scroll down			C-Down or C-e	C-Down
+	   Scroll up			C-Up or C-y	C-Up
+	   Search again			n		n
+	   Search again in reverse	N		N
+	   Search backward		?		C-r
+	   Search forward		/		C-s
+	   Start of line		0		C-a
+	   Start selection		Space		C-Space
+	   Top of history		g		M->
+	   Transpose chars				C-t
 
      The next and previous word keys use space and the ‘-’, ‘_’ and ‘@’ char-
      acters as word delimiters by default, but this can be adjusted by setting
@@ -383,6 +438,10 @@ WINDOWS AND PANES
      next word, next word end to the end of the next word and previous word to
      the start of the previous word.  The three next and previous space keys
      work similarly but use a space alone as the word separator.
+
+     The jump commands enable quick movement within a line.  For instance,
+     typing ‘f’ followed by ‘/’ will move the cursor to the next ‘/’ character
+     on the current line.  A ‘;’ will then jump to the next occurrence.
 
      Commands in copy mode may be prefaced by an optional repeat count.	 With
      vi key bindings, a prefix is entered using the number keys; with emacs,
@@ -393,15 +452,14 @@ WINDOWS AND PANES
      Mode key bindings are defined in a set of named tables: vi-edit and
      emacs-edit for keys used when line editing at the command prompt;
      vi-choice and emacs-choice for keys used when choosing from lists (such
-     as produced by the choose-window command) or in output mode; and vi-copy
-     and emacs-copy used in copy mode.	The tables may be viewed with the
-     list-keys command and keys modified or removed with bind-key and
-     unbind-key.
+     as produced by the choose-window command); and vi-copy and emacs-copy
+     used in copy mode.	 The tables may be viewed with the list-keys command
+     and keys modified or removed with bind-key and unbind-key.
 
      The paste buffer key pastes the first line from the top paste buffer on
      the stack.
 
-     The mode commands are as follows:
+     The synopsis for the copy-mode command is:
 
      copy-mode [-u] [-t target-pane]
 	     Enter copy mode.  The -u option scrolls one page up.
@@ -412,9 +470,9 @@ WINDOWS AND PANES
      may be split horizontally (with the -h flag) or vertically.  Panes may be
      resized with the resize-pane command (bound to ‘C-up’, ‘C-down’ ‘C-left’
      and ‘C-right’ by default), the current pane may be changed with the
-     up-pane and down-pane commands and the rotate-window and swap-pane com-
-     mands may be used to swap panes without changing their position.  Panes
-     are numbered beginning from zero in the order they are created.
+     select-pane command and the rotate-window and swap-pane commands may be
+     used to swap panes without changing their position.  Panes are numbered
+     beginning from zero in the order they are created.
 
      A number of preset layouts are available.	These may be selected with the
      select-layout command or cycled with next-layout (bound to ‘Space’ by
@@ -439,6 +497,21 @@ WINDOWS AND PANES
 	     Similar to main-horizontal but the large pane is placed on the
 	     left and the others spread from top to bottom along the right.
 	     See the main-pane-width window option.
+
+     tiled   Panes are spread out as evenly as possible over the window in
+	     both rows and columns.
+
+     In addition, select-layout may be used to apply a previously used layout
+     - the list-windows command displays the layout of each window in a form
+     suitable for use with select-layout.  For example:
+
+	   $ tmux list-windows
+	   0: ksh [159x48]
+	       layout: bb62,159x48,0,0{79x48,0,0,79x48,80,0}
+	   $ tmux select-layout bb62,159x48,0,0{79x48,0,0,79x48,80,0}
+     tmux automatically adjusts the size of the layout for the current window
+     size.  Note that a layout cannot be applied to a window with more panes
+     than that from which the layout was originally defined.
 
      Commands related to windows and panes are as follows:
 
@@ -482,10 +555,6 @@ WINDOWS AND PANES
 	     See the display-panes-time, display-panes-colour, and
 	     display-panes-active-colour session options.  While the indicator
 	     is on screen, a pane may be selected with the ‘0’ to ‘9’ keys.
-
-     down-pane [-t target-pane]
-		   (alias: downp)
-	     Change the active pane to the next pane (higher index).
 
      find-window [-t target-window] match-string
 		   (alias: findw)
@@ -533,19 +602,23 @@ WINDOWS AND PANES
 		   (alias: lsw)
 	     List windows in the current session or in target-session.
 
-     move-window [-d] [-s src-window] [-t dst-window]
+     move-window [-dk] [-s src-window] [-t dst-window]
 		   (alias: movew)
 	     This is similar to link-window, except the window at src-window
 	     is moved to dst-window.
 
-     new-window [-dk] [-n window-name] [-t target-window] [shell-command]
+     new-window [-adk] [-n window-name] [-t target-window] [shell-command]
 		   (alias: neww)
-	     Create a new window.  If -d is given, the session does not make
-	     the new window the current window.	 target-window represents the
-	     window to be created; if the target already exists an error is
-	     shown, unless the -k flag is used, in which case it is destroyed.
-	     shell-command is the command to execute.  If shell-command is not
-	     specified, the value of the default-command option is used.
+	     Create a new window.  With -a, the new window is inserted at the
+	     next index up from the specified target-window, moving windows up
+	     if necessary, otherwise target-window is the new window location.
+
+	     If -d is given, the session does not make the new window the cur-
+	     rent window.  target-window represents the window to be created;
+	     if the target already exists an error is shown, unless the -k
+	     flag is used, in which case it is destroyed.  shell-command is
+	     the command to execute.  If shell-command is not specified, the
+	     value of the default-command option is used.
 
 	     When the shell command completes, the window closes.  See the
 	     remain-on-exit option to change this behaviour.
@@ -568,13 +641,19 @@ WINDOWS AND PANES
 		   (alias: pipep)
 	     Pipe any output sent by the program in target-pane to a shell
 	     command.  A pane may only be piped to one command at a time, any
-	     existing pipe is closed before shell-command is executed.	If no
-	     shell-command is given, the current pipe (if any) is closed.
+	     existing pipe is closed before shell-command is executed.	The
+	     shell-command string may contain the special character sequences
+	     supported by the status-left command.  If no shell-command is
+	     given, the current pipe (if any) is closed.
 
 	     The -o option only opens a new pipe if no previous pipe exists,
 	     allowing a pipe to be toggled with a single key, for example:
 
-		   bind-key C-p pipe-pane -o ’cat >>~/output’
+		   bind-key C-p pipe-pane -o ’cat >>~/output.#I-#P’
+
+     previous-layout [-t target-window]
+		   (alias: prevl)
+	     Move to the previous layout in the session.
 
      previous-window [-a] [-t target-session]
 		   (alias: prev)
@@ -608,11 +687,13 @@ WINDOWS AND PANES
      select-layout [-t target-window] [layout-name]
 		   (alias: selectl)
 	     Choose a specific layout for a window.  If layout-name is not
-	     given, the last layout used (if any) is reapplied.
+	     given, the last preset layout used (if any) is reapplied.
 
-     select-pane [-t target-pane]
+     select-pane [-DLRU] [-t target-pane]
 		   (alias: selectp)
 	     Make pane target-pane the active pane in window target-window.
+	     If one of -D, -L, -R, or -U is used, respectively the pane below,
+	     to the left, to the right, or above the target pane is used.
 
      select-window [-t target-window]
 		   (alias: selectw)
@@ -648,10 +729,6 @@ WINDOWS AND PANES
 	     not be linked to no sessions; if -k is specified and the window
 	     is linked to only one session, it is unlinked and destroyed.
 
-     up-pane [-t target-pane]
-		   (alias: upp)
-	     Change the active pane to the previous pane (lower index).
-
 KEY BINDINGS
      tmux allows a command to be bound to most keys, with or without a prefix
      key.  When specifying keys, most represent themselves (for example ‘A’ to
@@ -663,7 +740,7 @@ KEY BINDINGS
      sary, for example:
 
 	   bind-key ’"’ split-window
-	   bind-key "’" select-prompt
+	   bind-key "’" new-window
 
      Commands related to key bindings are as follows:
 
@@ -750,6 +827,12 @@ OPTIONS
 
 	     Available server options are:
 
+	     detach-on-destroy
+		     If on (the default), the client is detached when the ses-
+		     sion it is attached to is destroyed.  If off, the client
+		     is switched to the most recently active of the remaining
+		     sessions.
+
 	     escape-time
 		     Set the time in milliseconds for which tmux waits after
 		     an escape is input to determine if it is part of a func-
@@ -799,8 +882,9 @@ OPTIONS
 	     default-path path
 		     Set the default working directory for processes created
 		     from keys, or interactively from the prompt.  The default
-		     is the current working directory when the server is
-		     started.
+		     is empty, which means to use the working directory of the
+		     shell from which the server was started if it is avail-
+		     able or the user’s home if not.
 
 	     default-terminal terminal
 		     Set the default terminal for new windows created in this
@@ -850,8 +934,8 @@ OPTIONS
 
 	     message-attr attributes
 		     Set status line message attributes, where attributes is
-		     either default or a comma-delimited list of one or more
-		     of: bright (or bold), dim, underscore, blink, reverse,
+		     either none or a comma-delimited list of one or more of:
+		     bright (or bold), dim, underscore, blink, reverse,
 		     hidden, or italics.
 
 	     message-bg colour
@@ -966,6 +1050,17 @@ OPTIONS
 		     commands are only executed once at the interval specified
 		     by the status-interval option: if the status line is
 		     redrawn in the meantime, the previous result is used.
+		     Shell commands are executed with the tmux global environ-
+		     ment set (see the ENVIRONMENT section).
+
+		     The window title (#T) is the title set by the program
+		     running within the window using the OSC title setting
+		     sequence, for example:
+
+			   $ printf ’\033]2;My Title\033\\’
+
+		     When a window is first created, its title is the host-
+		     name.
 
 		     #[attributes] allows a comma-separated list of attributes
 		     to be specified, these may be ‘fg=colour’ to set the
@@ -1135,9 +1230,9 @@ OPTIONS
 		     modes.  Key bindings default to emacs.
 
 	     mode-mouse [on | off]
-		     Mouse state in modes.  If on, tmux will respond to mouse
-		     clicks by moving the cursor in copy mode or selecting an
-		     option in choice mode.
+		     Mouse state in modes.  If on, the mouse may be used to
+		     copy a selection by dragging in copy mode, or to select
+		     an option in choice mode.
 
 	     monitor-activity [on | off]
 		     Monitor for activity in the window.  Windows with activ-
@@ -1155,8 +1250,8 @@ OPTIONS
 
 	     synchronize-panes [on | off]
 		     Duplicate input to any pane to all other panes in the
-		     same window, except for panes that are not in output
-		     mode.
+		     same window (only for panes that are not in any special
+		     mode).
 
 	     alternate-screen [on | off]
 		     This option configures whether programs running inside
@@ -1183,6 +1278,18 @@ OPTIONS
 		     status line window list.  See the status-left option for
 		     details of special character sequences available.	The
 		     default is ‘#I:#W#F’.
+
+	     window-status-alert-attr attributes
+		     Set status line attributes for windows which have an
+		     alert (bell, activity or content).
+
+	     window-status-alert-bg colour
+		     Set status line background colour for windows with an
+		     alert.
+
+	     window-status-alert-fg colour
+		     Set status line foreground colour for windows with an
+		     alert.
 
 	     window-status-current-attr attributes
 		     Set status line attributes for the currently active win-
@@ -1316,10 +1423,6 @@ STATUS LINE
 	     The format of message is as for status-left, with the exception
 	     that #() are not handled.
 
-     select-prompt [-t target-client]
-	     Open a prompt inside target-client allowing a window index to be
-	     entered interactively.
-
 BUFFERS
      tmux maintains a stack of paste buffers for each session.	Up to the
      value of the buffer-limit option are kept; when a new buffer is added,
@@ -1332,6 +1435,13 @@ BUFFERS
      history-limit option (see the set-option command above).
 
      The buffer commands are as follows:
+
+     choose-buffer [-t target-window] [template]
+	     Put a window into buffer choice mode, where a buffer may be cho-
+	     sen interactively from a list.  After a buffer is selected, ‘%%’
+	     is replaced by the buffer index in template and the result exe-
+	     cuted as a command.  If template is not given, "paste-buffer -b
+	     ’%%’" is used.  This command works only from inside tmux.
 
      clear-history [-t target-pane]
 		   (alias: clearhist)
@@ -1356,13 +1466,15 @@ BUFFERS
 		   (alias: loadb)
 	     Load the contents of the specified paste buffer from path.
 
-     paste-buffer [-dr] [-b buffer-index] [-t target-window]
+     paste-buffer [-dr] [-b buffer-index] [-s separator] [-t target-pane]
 		   (alias: pasteb)
-	     Insert the contents of a paste buffer into the current window.
-	     With -d, also delete the paste buffer from the stack.  When out-
-	     put, any linefeed (LF) characters in the paste buffer are
-	     replaced with carriage returns (CR).  This translation may be
-	     disabled with the -r flag.
+	     Insert the contents of a paste buffer into the specified pane.
+	     If not specified, paste into the current one.  With -d, also
+	     delete the paste buffer from the stack.  When output, any line-
+	     feed (LF) characters in the paste buffer are replaced with a sep-
+	     arator, by default carriage return (CR).  A custom separator may
+	     be specified using the -s flag.  The -r flag means to do no
+	     replacement (equivalent to a separator of LF).
 
      save-buffer [-a] [-b buffer-index] [-t target-session] path
 		   (alias: saveb)
@@ -1396,8 +1508,8 @@ MISCELLANEOUS
 		   (alias: run)
 	     Execute shell-command in the background without creating a win-
 	     dow.  After it finishes, any output to stdout is displayed in
-	     output mode.  If the command doesn’t return success, the exit
-	     status is also displayed.
+	     copy mode.	 If the command doesn’t return success, the exit sta-
+	     tus is also displayed.
 
      server-info
 		   (alias: info)
