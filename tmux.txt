@@ -197,16 +197,16 @@ COMMANDS
 
      target-window specifies a window in the form session:window.  session
      follows the same rules as for target-session, and window is looked for in
-     order: as a window index, for example mysession:1; as an exact window
-     name, such as mysession:mywindow; then as an fnmatch(3) pattern or the
-     start of a window name, such as mysession:mywin* or mysession:mywin.  An
-     empty window name specifies the next unused index if appropriate (for
-     example the new-window and link-window commands) otherwise the current
-     window in session is chosen.  The special character ‘!’ uses the last
-     (previously current) window, or ‘+’ and ‘-’ are the next window or the
-     previous window by number.	 When the argument does not contain a colon,
-     tmux first attempts to parse it as window; if that fails, an attempt is
-     made to match a session.
+     order: as a window index, for example mysession:1; as a window ID, such
+     as @1; as an exact window name, such as mysession:mywindow; then as an
+     fnmatch(3) pattern or the start of a window name, such as myses-
+     sion:mywin* or mysession:mywin.  An empty window name specifies the next
+     unused index if appropriate (for example the new-window and link-window
+     commands) otherwise the current window in session is chosen.  The special
+     character ‘!’ uses the last (previously current) window, or ‘+’ and ‘-’
+     are the next window or the previous window by number.  When the argument
+     does not contain a colon, tmux first attempts to parse it as window; if
+     that fails, an attempt is made to match a session.
 
      target-pane takes a similar form to target-window but with the optional
      addition of a period followed by a pane index, for example: myses-
@@ -249,9 +249,10 @@ COMMANDS
      Multiple commands may be specified together as part of a command
      sequence.	Each command should be separated by spaces and a semicolon;
      commands are executed sequentially from left to right and lines ending
-     with a backslash continue on to the next line.  A literal semicolon may
-     be included by escaping it with a backslash (for example, when specifying
-     a command sequence to bind-key).
+     with a backslash continue on to the next line, except when escaped by
+     another backslash.	 A literal semicolon may be included by escaping it
+     with a backslash (for example, when specifying a command sequence to
+     bind-key).
 
      Example tmux commands include:
 
@@ -303,12 +304,13 @@ CLIENTS AND SESSIONS
 	     adjusted: if tmux needs to select the most recently used session,
 	     it will prefer the most recently used unattached session.
 
-     detach-client [-P] [-s target-session] [-t target-client]
+     detach-client [-P] [-a] [-s target-session] [-t target-client]
 		   (alias: detach)
 	     Detach the current client if bound to a key, the client specified
 	     with -t, or all clients currently attached to the session speci-
-	     fied by -s.  If -P is given, send SIGHUP to the parent process of
-	     the client, typically causing it to exit.
+	     fied by -s.  The -a option kills all but the client given with
+	     -t.  If -P is given, send SIGHUP to the parent process of the
+	     client, typically causing it to exit.
 
      has-session [-t target-session]
 		   (alias: has)
@@ -318,9 +320,11 @@ CLIENTS AND SESSIONS
      kill-server
 	     Kill the tmux server and clients and destroy all sessions.
 
-     kill-session [-t target-session]
-	     Destroy the given session, closing any windows linked to it and
-	     no other sessions, and detaching all clients attached to it.
+     kill-session
+	     [-a] [-t target-session] Destroy the given session, closing any
+	     windows linked to it and no other sessions, and detaching all
+	     clients attached to it.  If -a is given, all sessions but the
+	     specified one is killed.
 
      list-clients [-F format] [-t target-session]
 		   (alias: lsc)
@@ -550,11 +554,14 @@ WINDOWS AND PANES
 
      Commands related to windows and panes are as follows:
 
-     break-pane [-d] [-t target-pane]
+     break-pane [-dP] [-F format] [-t target-pane]
 		   (alias: breakp)
 	     Break target-pane off from its containing window to make it the
 	     only pane in a new window.	 If -d is given, the new window does
-	     not become the current window.
+	     not become the current window.  The -P option prints information
+	     about the new window after it has been created.  By default, it
+	     uses the format ‘#{session_name}:#{window_index}’ but a different
+	     format may be specified with -F.
 
      capture-pane [-b buffer-index] [-E end-line] [-S start-line] [-t
 	     target-pane]
@@ -567,28 +574,63 @@ WINDOWS AND PANES
 	     in the history.  The default is to capture only the visible con-
 	     tents of the pane.
 
-     choose-client [-t target-window] [template]
+     choose-client [-F format] [-t target-window] [template]
 	     Put a window into client choice mode, allowing a client to be
 	     selected interactively from a list.  After a client is chosen,
 	     ‘%%’ is replaced by the client pty(4) path in template and the
 	     result executed as a command.  If template is not given, "detach-
-	     client -t ’%%’" is used.  This command works only from inside
-	     tmux.
+	     client -t ’%%’" is used.  For the meaning of the -F flag, see the
+	     FORMATS section.  This command works only from inside tmux.
 
-     choose-session [-t target-window] [template]
+     choose-list [-l items] [-t target-window] [template]
+	     Put a window into list choice mode, allowing items to be
+	     selected.	items can be a comma-separated list to display more
+	     than one item.  If an item has spaces, that entry must be quoted.
+	     After an item is chosen, ‘%%’ is replaced by the chosen item in
+	     the template and the result is executed as a command.  If
+	     template is not given, "run-shell ’%%’" is used.  items also
+	     accepts format specifiers.	 For the meaning of this see the
+	     FORMATS section.  This command works only from inside tmux.
+
+     choose-session [-F format] [-t target-window] [template]
 	     Put a window into session choice mode, where a session may be
 	     selected interactively from a list.  When one is chosen, ‘%%’ is
 	     replaced by the session name in template and the result executed
 	     as a command.  If template is not given, "switch-client -t ’%%’"
-	     is used.  This command works only from inside tmux.
+	     is used.  For the meaning of the -F flag, see the FORMATS sec-
+	     tion.  This command works only from inside tmux.
 
-     choose-window [-t target-window] [template]
+     choose-tree [-s] [-w] [-b session-template] [-c window-template] [-S
+	     format] [-W format] [-t target-window]
+	     Put a window into tree choice mode, where either sessions or win-
+	     dows may be selected interactively from a list.  By default, win-
+	     dows belonging to a session are indented to show their relation-
+	     ship to a session.
+
+	     Note that the choose-window and choose-session commands are wrap-
+	     pers around choose-tree.
+
+	     If -s is given, will show sessions.  If -w is given, will show
+	     windows.  If -b is given, will override the default session com-
+	     mand.  Note that ‘%%’ can be used, and will be replaced with the
+	     session name.  The default option if not specified is "switch-
+	     client -t ’%%’".  If -c is given, will override the default win-
+	     dow command.  Note that ‘%%’ can be used, and will be replaced
+	     with the session name and window index.  This command will run
+	     session-template before it.  If -S is given will display the
+	     specified format instead of the default session format.  If -W is
+	     given will display the specified format instead of the default
+	     window format.  For the meaning of the -s and -w options, see the
+	     FORMATS section.  This command only works from inside tmux.
+
+     choose-window [-F format] [-t target-window] [template]
 	     Put a window into window choice mode, where a window may be cho-
 	     sen interactively from a list.  After a window is selected, ‘%%’
 	     is replaced by the session name and window index in template and
 	     the result executed as a command.	If template is not given,
-	     "select-window -t ’%%’" is used.  This command works only from
-	     inside tmux.
+	     "select-window -t ’%%’" is used.  For the meaning of the -F flag,
+	     see the FORMATS section.  This command works only from inside
+	     tmux.
 
      display-panes [-t target-client]
 		   (alias: displayp)
@@ -597,18 +639,23 @@ WINDOWS AND PANES
 	     display-panes-active-colour session options.  While the indicator
 	     is on screen, a pane may be selected with the ‘0’ to ‘9’ keys.
 
-     find-window [-t target-window] match-string
+     find-window [-CNT] [-F format] [-t target-window] match-string
 		   (alias: findw)
 	     Search for the fnmatch(3) pattern match-string in window names,
-	     titles, and visible content (but not history).  If only one win-
-	     dow is matched, it’ll be automatically selected, otherwise a
-	     choice list is shown.  This command only works from inside tmux.
+	     titles, and visible content (but not history).  The flags control
+	     matching behavior: -C matches only visible window contents, -N
+	     matches only the window name and -T matches only the window
+	     title.  The default is -CNT.  If only one window is matched,
+	     it’ll be automatically selected, otherwise a choice list is
+	     shown.  For the meaning of the -F flag, see the FORMATS section.
+	     This command only works from inside tmux.
 
-     join-pane [-dhv] [-l size | -p percentage] [-s src-pane] [-t dst-pane]
+     join-pane [-bdhv] [-l size | -p percentage] [-s src-pane] [-t dst-pane]
 		   (alias: joinp)
 	     Like split-window, but instead of splitting dst-pane and creating
 	     a new pane, split it and move src-pane into the space.  This can
-	     be used to reverse break-pane.
+	     be used to reverse break-pane.  The -b option causes src-pane to
+	     be joined to left of or above dst-pane.
 
      kill-pane [-a] [-t target-pane]
 		   (alias: killp)
@@ -616,10 +663,11 @@ WINDOWS AND PANES
 	     window, it is also destroyed.  The -a option kills all but the
 	     pane given with -t.
 
-     kill-window [-t target-window]
+     kill-window [-a] [-t target-window]
 		   (alias: killw)
 	     Kill the current window or the window at target-window, removing
-	     it from any sessions to which it is linked.
+	     it from any sessions to which it is linked.  The -a option kills
+	     all but the window given with -t.
 
      last-pane [-t target-window]
 		   (alias: lastp)
@@ -653,12 +701,19 @@ WINDOWS AND PANES
 	     windows in the current session or in target-session.  For the
 	     meaning of the -F flag, see the FORMATS section.
 
-     move-window [-dk] [-s src-window] [-t dst-window]
+     move-pane [-bdhv] [-l size | -p percentage] [-s src-pane] [-t dst-pane]
+		   (alias: movep)
+	     Like join-pane, but src-pane and dst-pane may belong to the same
+	     window.
+
+     move-window [-rdk] [-s src-window] [-t dst-window]
 		   (alias: movew)
 	     This is similar to link-window, except the window at src-window
-	     is moved to dst-window.
+	     is moved to dst-window.  With -r, all windows in the session are
+	     renumbered in sequential order, respecting the base-index option.
 
-     new-window [-adkP] [-n window-name] [-t target-window] [shell-command]
+     new-window [-adkP] [-c start-directory] [-n window-name] [-t
+	     target-window] [-F format] [shell-command]
 		   (alias: neww)
 	     Create a new window.  With -a, the new window is inserted at the
 	     next index up from the specified target-window, moving windows up
@@ -669,7 +724,15 @@ WINDOWS AND PANES
 	     if the target already exists an error is shown, unless the -k
 	     flag is used, in which case it is destroyed.  shell-command is
 	     the command to execute.  If shell-command is not specified, the
-	     value of the default-command option is used.
+	     value of the default-command option is used.  -c specifies the
+	     working directory in which the new window is created.  It may
+	     have an absolute path or one of the following values (or a subdi-
+	     rectory):
+
+		   Empty string	   Current pane’s directory
+		   ~		   User’s home directory
+		   -		   Where session was started
+		   .		   Where server was started
 
 	     When the shell command completes, the window closes.  See the
 	     remain-on-exit option to change this behaviour.
@@ -679,8 +742,10 @@ WINDOWS AND PANES
 	     have “TERM=screen” added to their environment, but care must be
 	     taken not to reset this in shell start-up files.
 
-	     The -P option prints the location of the new window after it has
-	     been created.
+	     The -P option prints information about the new window after it
+	     has been created.	By default, it uses the format
+	     ‘#{session_name}:#{window_index}’ but a different format may be
+	     specified with -F.
 
      next-layout [-t target-window]
 		   (alias: nextl)
@@ -689,7 +754,7 @@ WINDOWS AND PANES
      next-window [-a] [-t target-session]
 		   (alias: next)
 	     Move to the next window in the session.  If -a is used, move to
-	     the next window with a bell, activity or content alert.
+	     the next window with an alert.
 
      pipe-pane [-o] [-t target-pane] [shell-command]
 		   (alias: pipep)
@@ -712,7 +777,7 @@ WINDOWS AND PANES
      previous-window [-a] [-t target-session]
 		   (alias: prev)
 	     Move to the previous window in the session.  With -a, move to the
-	     previous window with a bell, activity or content alert.
+	     previous window with an alert.
 
      rename-window [-t target-window] new-name
 		   (alias: renamew)
@@ -746,12 +811,15 @@ WINDOWS AND PANES
 	     Rotate the positions of the panes within a window, either upward
 	     (numerically lower) with -U or downward (numerically higher).
 
-     select-layout [-np] [-t target-window] [layout-name]
+     select-layout [-npUu] [-t target-window] [layout-name]
 		   (alias: selectl)
 	     Choose a specific layout for a window.  If layout-name is not
 	     given, the last preset layout used (if any) is reapplied.	-n and
 	     -p are equivalent to the next-layout and previous-layout com-
 	     mands.
+
+	     -U and -u step forward and back through previous layouts, up to
+	     the maximum set by the layout-history-limit option.
 
      select-pane [-lDLRU] [-t target-pane]
 		   (alias: selectp)
@@ -765,8 +833,8 @@ WINDOWS AND PANES
 	     Select the window at target-window.  -l, -n and -p are equivalent
 	     to the last-window, next-window and previous-window commands.
 
-     split-window [-dhvP] [-l size | -p percentage] [-t target-pane]
-	     [shell-command]
+     split-window [-dhvP] [-c start-directory] [-l size | -p percentage] [-t
+	     target-pane] [shell-command] [-F format]
 		   (alias: splitw)
 	     Create a new pane by splitting target-pane: -h does a horizontal
 	     split and -v a vertical split; if neither is specified, -v is
@@ -827,20 +895,19 @@ KEY BINDINGS
 		   (alias: lsk)
 	     List all key bindings.  Without -t the primary key bindings -
 	     those executed when preceded by the prefix key - are printed.
-	     Keys bound without the prefix key (see bind-key -n) are marked
-	     with ‘(no prefix)’.
 
 	     With -t, the key bindings in key-table are listed; this may be
 	     one of: vi-edit, emacs-edit, vi-choice, emacs-choice, vi-copy or
 	     emacs-copy.
 
-     send-keys -R [-t target-pane] key ...
+     send-keys [-lR] [-t target-pane] key ...
 		   (alias: send)
 	     Send a key or keys to a window.  Each argument key is the name of
 	     the key (such as ‘C-a’ or ‘npage’ ) to send; if the string is not
-	     recognised as a key, it is sent as a series of characters.	 All
-	     arguments are sent sequentially from first to last.  The -R flag
-	     causes the terminal state to be reset.
+	     recognised as a key, it is sent as a series of characters.	 The
+	     -l flag disables key name lookup and sends the keys literally.
+	     All arguments are sent sequentially from first to last.  The -R
+	     flag causes the terminal state to be reset.
 
      send-prefix [-2] [-t target-pane]
 	     Send the prefix key, or with -2 the secondary prefix key, to a
@@ -880,7 +947,7 @@ OPTIONS
 
      Commands which set options are as follows:
 
-     set-option [-agsuw] [-t target-session | target-window] option value
+     set-option [-agqsuw] [-t target-session | target-window] option value
 		   (alias: set)
 	     Set a window option with -w (equivalent to the set-window-option
 	     command), a server option with -s, otherwise a session option.
@@ -891,7 +958,13 @@ OPTIONS
 	     inherits the option from the global options.  It is not possible
 	     to unset a global option.
 
+	     The -q flag suppresses the informational message (as if the quiet
+	     server option was set).
+
 	     Available window options are listed under set-window-option.
+
+	     value depends on the option and may be a number, a string, or a
+	     flag (on, off, or omitted to toggle).
 
 	     Available server options are:
 
@@ -942,8 +1015,7 @@ OPTIONS
 		     window are ignored.
 
 	     bell-on-alert [on | off]
-		     If on, ring the terminal bell when an activity, content
-		     or silence alert occurs.
+		     If on, ring the terminal bell when an alert occurs.
 
 	     default-command shell-command
 		     Set the command used for new windows (if not specified
@@ -957,10 +1029,8 @@ OPTIONS
 		     empty (the default), the working directory is determined
 		     from the process running in the active pane, from the
 		     command line environment or from the working directory
-		     where the session was created.  If path is "$HOME" or
-		     "~", the value of the HOME environment variable is used.
-		     If path is ".", the working directory when tmux was
-		     started is used.
+		     where the session was created.  Otherwise the same
+		     options are available as for the -c flag to new-window.
 
 	     default-shell path
 		     Specify the default shell.	 This is used as the login
@@ -1096,6 +1166,12 @@ OPTIONS
 	     prefix2 key
 		     Set a secondary key accepted as a prefix key.
 
+	     renumber-windows [on | off]
+		     If on, when a window is closed in a session, automati-
+		     cally renumber the other windows in numerical order.
+		     This respects the base-index option if it has been set.
+		     If off, do not renumber the windows.
+
 	     repeat-time time
 		     Allow multiple commands to be entered without pressing
 		     the prefix-key again in the specified time milliseconds
@@ -1167,6 +1243,7 @@ OPTIONS
 							      the domain name
 			   #F		     Current window flag
 			   #I		     Current window index
+			   #D		     Current pane unique identifier
 			   #P		     Current pane index
 			   #S		     Session name
 			   #T		     Current pane title
@@ -1216,6 +1293,9 @@ OPTIONS
 	     status-left-length length
 		     Set the maximum length of the left component of the sta-
 		     tus bar.  The default is 10.
+
+	     status-position [top | bottom]
+		     Set the position of the status line.
 
 	     status-right string
 		     Display string to the right of the status bar.  By
@@ -1304,10 +1384,10 @@ OPTIONS
 		     previous word commands in copy mode.  The default is
 		     ‘ -_@’.
 
-     set-window-option [-agu] [-t target-window] option value
+     set-window-option [-agqu] [-t target-window] option value
 		   (alias: setw)
-	     Set a window option.  The -a, -g and -u flags work similarly to
-	     the set-option command.
+	     Set a window option.  The -a, -g, -q and -u flags work similarly
+	     to the set-option command.
 
 	     Supported window options are:
 
@@ -1347,6 +1427,19 @@ OPTIONS
 
 			   set-window-option -g automatic-rename off
 
+	     c0-change-interval interval
+	     c0-change-trigger trigger
+		     These two options configure a simple form of rate limit-
+		     ing for a pane.  If tmux sees more than trigger C0
+		     sequences that modify the screen (for example, carriage
+		     returns, linefeeds or backspaces) in one millisecond, it
+		     will stop updating the pane immediately and instead
+		     redraw it entirely every interval milliseconds.  This
+		     helps to prevent fast output (such as yes(1) overwhelming
+		     the terminal).  The default is a trigger of 250 and an
+		     interval of 100.  A trigger of zero disables the rate
+		     limiting.
+
 	     clock-mode-colour colour
 		     Set clock colour.
 
@@ -1358,6 +1451,10 @@ OPTIONS
 		     Prevent tmux from resizing a window to greater than width
 		     or height.	 A value of zero restores the default unlim-
 		     ited setting.
+
+	     layout-history-limit limit
+		     Set the number of previous layouts stored for recovery
+		     with select-layout -U and -u.
 
 	     main-pane-height height
 	     main-pane-width width
@@ -1498,41 +1595,51 @@ OPTIONS
 		     details of special character sequences available.	The
 		     default is ‘#I:#W#F’.
 
+	     window-status-separator string
+		     Sets the separator drawn between windows in the status
+		     line.  The default is a single space character.
+
 	     xterm-keys [on | off]
 		     If this option is set, tmux will generate xterm(1) -style
 		     function key sequences; these have a number included to
 		     indicate modifiers such as Shift, Alt or Ctrl.  The
 		     default is off.
 
-     show-options [-gsw] [-t target-session | target-window]
-		   (alias: show)
-	     Show the window options with -w (equivalent to
-	     show-window-options), the server options with -s, otherwise the
-	     session options for target session.  Global session or window
-	     options are listed if -g is used.
+	     wrap-search [on | off]
+		     If this option is set, searches will wrap around the end
+		     of the pane contents.  The default is on.
 
-     show-window-options [-g] [-t target-window]
+     show-options [-gsw] [-t target-session | target-window] [option]
+		   (alias: show)
+	     Show the window options (or a single window option if given) with
+	     -w (equivalent to show-window-options), the server options with
+	     -s, otherwise the session options for target session.  Global
+	     session or window options are listed if -g is used.
+
+     show-window-options [-g] [-t target-window] [option]
 		   (alias: showw)
-	     List the window options for target-window, or the global window
-	     options if -g is used.
+	     List the window options or a single option for target-window, or
+	     the global window options if -g is used.
 
 FORMATS
-     The list-clients, list-sessions, list-windows and list-panes commands
-     accept the -F flag with a format argument.	 This is a string which con-
-     trols the output format of the command.  Special character sequences are
-     replaced as documented under the status-left option and an additional
-     long form is accepted.  Replacement variables are enclosed in ‘#{’ and
-     ‘}’, for example ‘#{session_name}’ is equivalent to ‘#S’.	Conditionals
-     are also accepted by prefixing with ‘?’ and separating two alternatives
-     with a comma; if the specified variable exists and is not zero, the first
-     alternative is chosen, otherwise the second is used.  For example
-     ‘#{?session_attached,attached,not attached}’ will include the string
-     ‘attached’ if the session is attached and the string ‘not attached’ if it
-     is unattached.
+     Certain commands accept the -F flag with a format argument.  This is a
+     string which controls the output format of the command.  Special charac-
+     ter sequences are replaced as documented under the status-left option and
+     an additional long form is accepted.  Replacement variables are enclosed
+     in ‘#{’ and ‘}’, for example ‘#{session_name}’ is equivalent to ‘#S’.
+     Conditionals are also accepted by prefixing with ‘?’ and separating two
+     alternatives with a comma; if the specified variable exists and is not
+     zero, the first alternative is chosen, otherwise the second is used.  For
+     example ‘#{?session_attached,attached,not attached}’ will include the
+     string ‘attached’ if the session is attached and the string ‘not
+     attached’ if it is unattached.
 
      The following variables are available, where appropriate:
 
 	   Variable name	     Replaced with
+	   buffer_sample	     First 50 characters from the specified
+						      buffer
+	   buffer_size		     Size of the specified buffer in bytes
 	   client_activity	     Integer time client last had activity
 	   client_activity_string    String time client last had activity
 	   client_created	     Integer time client created
@@ -1545,11 +1652,16 @@ FORMATS
 	   client_utf8		     1 if client supports utf8
 	   client_width		     Width of client
 	   host			     Hostname of local host
+	   history_bytes	     Number of bytes in window history
+	   history_limit	     Maximum window history lines
+	   history_size		     Size of history in bytes
 	   line			     Line number in the list
 	   pane_active		     1 if active pane
+	   pane_current_path	     Current path if available
 	   pane_dead		     1 if pane is dead
 	   pane_height		     Height of pane
-	   pane_id		     Unique pane id
+	   pane_id		     Unique pane ID
+	   pane_index		     Index of pane
 	   pane_pid		     PID of first process in pane
 	   pane_start_command	     Command pane started with
 	   pane_start_path	     Path pane started with
@@ -1566,11 +1678,15 @@ FORMATS
 	   session_width	     Width of session
 	   session_windows	     Number of windows in session
 	   window_active	     1 if window active
+	   window_find_matches	     Matched data from the find-window command
+						      if available
 	   window_flags		     Window flags
 	   window_height	     Height of window
+	   window_id		     Unique window ID
 	   window_index		     Index of window
 	   window_layout	     Window layout description
 	   window_name		     Name of window
+	   window_panes		     Number of panes in window
 	   window_width		     Width of window
 
 NAMES AND TITLES
@@ -1625,11 +1741,11 @@ ENVIRONMENT
 	     variable.	-r indicates the variable is to be removed from the
 	     environment before starting a new process.
 
-     show-environment [-g] [-t target-session]
+     show-environment [-g] [-t target-session] [variable]
 		   (alias: showenv)
 	     Display the environment for target-session or the global environ-
-	     ment with -g.  Variables removed from the environment are pre-
-	     fixed with ‘-’.
+	     ment with -g.  If variable is omitted, all variables are shown.
+	     Variables removed from the environment are prefixed with ‘-’.
 
 STATUS LINE
      tmux includes an optional status line which is displayed in the bottom
@@ -1706,10 +1822,9 @@ STATUS LINE
 		   (alias: display)
 	     Display a message.	 If -p is given, the output is printed to std-
 	     out, otherwise it is displayed in the target-client status line.
-	     The format of message is as for status-left, with the exception
-	     that #() are not handled; information is taken from target-pane
-	     if -t is given, otherwise the active pane for the session
-	     attached to target-client.
+	     The format of message is described in the FORMATS section; infor-
+	     mation is taken from target-pane if -t is given, otherwise the
+	     active pane for the session attached to target-client.
 
 BUFFERS
      tmux maintains a stack of paste buffers.  Up to the value of the
@@ -1724,12 +1839,13 @@ BUFFERS
 
      The buffer commands are as follows:
 
-     choose-buffer [-t target-window] [template]
+     choose-buffer [-F format] [-t target-window] [template]
 	     Put a window into buffer choice mode, where a buffer may be cho-
 	     sen interactively from a list.  After a buffer is selected, ‘%%’
 	     is replaced by the buffer index in template and the result exe-
 	     cuted as a command.  If template is not given, "paste-buffer -b
-	     ’%%’" is used.  This command works only from inside tmux.
+	     ’%%’" is used.  For the meaning of the -F flag, see the FORMATS
+	     section.  This command works only from inside tmux.
 
      clear-history [-t target-pane]
 		   (alias: clearhist)
@@ -1740,15 +1856,16 @@ BUFFERS
 	     Delete the buffer at buffer-index, or the top buffer if not spec-
 	     ified.
 
-     list-buffers
+     list-buffers [-F format]
 		   (alias: lsb)
-	     List the global buffers.
+	     List the global buffers.  For the meaning of the -F flag, see the
+	     FORMATS section.
 
      load-buffer [-b buffer-index] path
 		   (alias: loadb)
 	     Load the contents of the specified paste buffer from path.
 
-     paste-buffer [-dr] [-b buffer-index] [-s separator] [-t target-pane]
+     paste-buffer [-dpr] [-b buffer-index] [-s separator] [-t target-pane]
 		   (alias: pasteb)
 	     Insert the contents of a paste buffer into the specified pane.
 	     If not specified, paste into the current one.  With -d, also
@@ -1756,7 +1873,9 @@ BUFFERS
 	     feed (LF) characters in the paste buffer are replaced with a sep-
 	     arator, by default carriage return (CR).  A custom separator may
 	     be specified using the -s flag.  The -r flag means to do no
-	     replacement (equivalent to a separator of LF).
+	     replacement (equivalent to a separator of LF).  If -p is speci-
+	     fied, paste bracket control codes are inserted around the buffer
+	     if the application has requested bracketed paste mode.
 
      save-buffer [-a] [-b buffer-index] path
 		   (alias: saveb)
