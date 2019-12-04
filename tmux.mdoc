@@ -112,7 +112,7 @@ DDEESSCCRRIIPPTTIIOONN
                    ttmmuuxx, as described in the following sections.  If no com-
                    mands are specified, the nneeww--sseessssiioonn command is assumed.
 
-KKEEYY BBIINNDDIINNGGSS
+DDEEFFAAUULLTT KKEEYY BBIINNDDIINNGGSS
      ttmmuuxx may be controlled from an attached client by using a key combination
      of a prefix key, ‘C-b’ (Ctrl-b) by default, followed by a command key.
 
@@ -313,11 +313,11 @@ CCOOMMMMAANNDDSS
      _c_o_m_m_a_n_d [_a_r_g_u_m_e_n_t_s] refers to a ttmmuuxx command, passed with the command and
      arguments separately, for example:
 
-           bind-key F1 set-window-option force-width 81
+           bind-key F1 set-option status off
 
      Or if using sh(1):
 
-           $ tmux bind-key F1 set-window-option force-width 81
+           $ tmux bind-key F1 set-option status off
 
      Multiple commands may be specified together as part of a _c_o_m_m_a_n_d
      _s_e_q_u_e_n_c_e.  Each command should be separated by spaces and a semicolon;
@@ -439,8 +439,10 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
              The new session is attached to the current terminal unless --dd is
              given.  _w_i_n_d_o_w_-_n_a_m_e and _s_h_e_l_l_-_c_o_m_m_a_n_d are the name of and shell
              command to execute in the initial window.  With --dd, the initial
-             size is 80 x 24; --xx and --yy can be used to specify a different
-             size.  ‘-’ uses the size of the current client if any.
+             size comes from the global _d_e_f_a_u_l_t_-_s_i_z_e option; --xx and --yy can be
+             used to specify a different size.  ‘-’ uses the size of the cur-
+             rent client if any.  If --xx or --yy is given, the _d_e_f_a_u_l_t_-_s_i_z_e
+             option is set for the session.
 
              If run from a terminal, any termios(4) special characters are
              saved and used for new windows in the new session.
@@ -475,13 +477,30 @@ CCLLIIEENNTTSS AANNDD SSEESSSSIIOONNSS
 
              If --EE is used, the uuppddaattee--eennvviirroonnmmeenntt option will not be applied.
 
-     rreeffrreesshh--cclliieenntt [--CC _w_i_d_t_h_,_h_e_i_g_h_t] [--SS] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
+     rreeffrreesshh--cclliieenntt [--ccDDllLLRRSSUU] [--CC _w_i_d_t_h_,_h_e_i_g_h_t] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t]
+             [_a_d_j_u_s_t_m_e_n_t]
                    (alias: rreeffrreesshh)
              Refresh the current client if bound to a key, or a single client
              if one is given with --tt.  If --SS is specified, only update the
              client’s status line.
 
-             --CC sets the width and height of a control client.
+             The --UU, --DD, --LL --RR, and --cc flags allow the visible portion of a
+             window which is larger than the client to be changed.  --UU moves
+             the visible part up by _a_d_j_u_s_t_m_e_n_t rows and --DD down, --LL left by
+             _a_d_j_u_s_t_m_e_n_t columns and --RR right.  --cc returns to tracking the cur-
+             sor automatically.  If _a_d_j_u_s_t_m_e_n_t is omitted, 1 is used.  Note
+             that the visible position is a property of the client not of the
+             window, changing the current window in the attached session will
+             reset it.
+
+             --CC sets the width and height of a control client.  --ll requests
+             the clipboard from the client using the xterm(1) escape sequence
+             and stores it in a new paste buffer.
+
+             --LL, --RR, --UU and --DD move the visible portion of the window left,
+             right, up or down by _a_d_j_u_s_t_m_e_n_t, if the window is larger than the
+             client.  --cc resets so that the position follows the cursor.  See
+             the wwiinnddooww--ssiizzee option.
 
      rreennaammee--sseessssiioonn [--tt _t_a_r_g_e_t_-_s_e_s_s_i_o_n] _n_e_w_-_n_a_m_e
                    (alias: rreennaammee)
@@ -814,7 +833,7 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              session groups in the tree rather than only the first.  This com-
              mand works only if at least one client is attached.
 
-     ddiissppllaayy--ppaanneess [--dd _d_u_r_a_t_i_o_n] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t] [_t_e_m_p_l_a_t_e]
+     ddiissppllaayy--ppaanneess [--bb] [--dd _d_u_r_a_t_i_o_n] [--tt _t_a_r_g_e_t_-_c_l_i_e_n_t] [_t_e_m_p_l_a_t_e]
                    (alias: ddiissppllaayypp)
              Display a visible indicator of each pane shown by _t_a_r_g_e_t_-_c_l_i_e_n_t.
              See the ddiissppllaayy--ppaanneess--ccoolloouurr and ddiissppllaayy--ppaanneess--aaccttiivvee--ccoolloouurr ses-
@@ -825,14 +844,16 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
              screen, a pane may be chosen with the ‘0’ to ‘9’ keys, which will
              cause _t_e_m_p_l_a_t_e to be executed as a command with ‘%%’ substituted
              by the pane ID.  The default _t_e_m_p_l_a_t_e is "select-pane -t ’%%’".
+             With --bb, other commands are not blocked from running until the
+             indicator is closed.
 
-     ffiinndd--wwiinnddooww [--CCNNTT] [--tt _t_a_r_g_e_t_-_p_a_n_e] _m_a_t_c_h_-_s_t_r_i_n_g
+     ffiinndd--wwiinnddooww [--CCNNTTZZ] [--tt _t_a_r_g_e_t_-_p_a_n_e] _m_a_t_c_h_-_s_t_r_i_n_g
                    (alias: ffiinnddww)
              Search for the fnmatch(3) pattern _m_a_t_c_h_-_s_t_r_i_n_g in window names,
              titles, and visible content (but not history).  The flags control
              matching behavior: --CC matches only visible window contents, --NN
              matches only the window name and --TT matches only the window
-             title.  The default is --CCNNTT.
+             title.  The default is --CCNNTT.  --ZZ zooms the pane.
 
              This command works only if at least one client is attached.
 
@@ -988,6 +1009,16 @@ WWIINNDDOOWWSS AANNDD PPAANNEESS
 
              --MM begins mouse resizing (only valid if bound to a mouse key
              binding, see _M_O_U_S_E _S_U_P_P_O_R_T).
+
+     rreessiizzee--wwiinnddooww [--aaAADDLLRRUU] [--tt _t_a_r_g_e_t_-_w_i_n_d_o_w] [--xx _w_i_d_t_h] [--yy _h_e_i_g_h_t]
+             [_a_d_j_u_s_t_m_e_n_t]
+                   (alias: rreessiizzeeww)
+             Resize a window, up, down, left or right by _a_d_j_u_s_t_m_e_n_t with --UU,
+             --DD, --LL or --RR, or to an absolute size with --xx or --yy.  The
+             _a_d_j_u_s_t_m_e_n_t is given in lines or cells (the default is 1).  --AA
+             sets the size of the largest session containing the window; --aa
+             the size of the smallest.  This command will automatically set
+             wwiinnddooww--ssiizzee to manual in the window options.
 
      rreessppaawwnn--ppaannee [--cc _s_t_a_r_t_-_d_i_r_e_c_t_o_r_y] [--kk] [--tt _t_a_r_g_e_t_-_p_a_n_e] [_s_h_e_l_l_-_c_o_m_m_a_n_d]
                    (alias: rreessppaawwnnpp)
@@ -1349,6 +1380,12 @@ OOPPTTIIOONNSS
                      which instructs ttmmuuxx to create a login shell using the
                      value of the ddeeffaauulltt--sshheellll option.
 
+             ddeeffaauulltt--ssiizzee _X_x_Y
+                     Set the default size of new windows when the _w_i_n_d_o_w_-_s_i_z_e
+                     option is set to manual or when a session is created with
+                     nneeww--sseessssiioonn --dd.  The value is the width and height sepa-
+                     rated by an ‘x’ character.  The default is 80x24.
+
              ddeeffaauulltt--sshheellll _p_a_t_h
                      Specify the default shell.  This is used as the login
                      shell for new windows when the ddeeffaauulltt--ccoommmmaanndd option is
@@ -1358,6 +1395,10 @@ OOPPTTIIOONNSS
                      able, the shell returned by getpwuid(3), or _/_b_i_n_/_s_h.
                      This option should be configured when ttmmuuxx is used as a
                      login shell.
+
+             ddeeffaauulltt--ssiizzee _X_x_Y
+                     Set the default size of windows when the size is not set
+                     or the wwiinnddooww--ssiizzee option is manual.
 
              ddeessttrrooyy--uunnaattttaacchheedd [oonn | ooffff]
                      If enabled and the session is no longer attached to any
@@ -1406,36 +1447,12 @@ OOPPTTIIOONNSS
                      to run lock(1) with --nnpp.
 
              mmeessssaaggee--ccoommmmaanndd--ssttyyllee _s_t_y_l_e
-                     Set status line message command style, where _s_t_y_l_e is a
-                     comma-separated list of characteristics to be specified.
-
-                     These may be ‘bg=colour’ to set the background colour,
-                     ‘fg=colour’ to set the foreground colour, and a list of
-                     attributes as specified below.
-
-                     The colour is one of: bbllaacckk, rreedd, ggrreeeenn, yyeellllooww, bblluuee,
-                     mmaaggeennttaa, ccyyaann, wwhhiittee, aixterm bright variants (if sup-
-                     ported: bbrriigghhttrreedd, bbrriigghhttggrreeeenn, and so on), ccoolloouurr00 to
-                     ccoolloouurr225555 from the 256-colour set, ddeeffaauulltt, or a hexadec-
-                     imal RGB string such as ‘#ffffff’.
-
-                     The attributes is either nnoonnee or a comma-delimited list
-                     of one or more of: bbrriigghhtt (or bboolldd), ddiimm, uunnddeerrssccoorree,
-                     bblliinnkk, rreevveerrssee, hhiiddddeenn, iittaalliiccss, or ssttrriikkeetthhrroouugghh to turn
-                     an attribute on, or an attribute prefixed with ‘no’ to
-                     turn one off.
-
-                     Examples are:
-
-                           fg=yellow,bold,underscore,blink
-                           bg=black,fg=default,noreverse
-
-                     With the --aa flag to the sseett--ooppttiioonn command the new style
-                     is added otherwise the existing style is replaced.
+                     Set status line message command style.  For how to spec-
+                     ify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              mmeessssaaggee--ssttyyllee _s_t_y_l_e
                      Set status line message style.  For how to specify _s_t_y_l_e,
-                     see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
+                     see the _S_T_Y_L_E_S section.
 
              mmoouussee [oonn | ooffff]
                      If on, ttmmuuxx captures the mouse and allows mouse events to
@@ -1480,8 +1497,15 @@ OOPPTTIIOONNSS
                      Set action on window silence when mmoonniittoorr--ssiilleennccee is on.
                      The values are the same as those for aaccttiivviittyy--aaccttiioonn.
 
-             ssttaattuuss [oonn | ooffff]
-                     Show or hide the status line.
+             ssttaattuuss [ooffff | oonn | 22 | 33 | 44 | 55]
+                     Show or hide the status line or specify its size.  Using
+                     oonn gives a status line one row in height; 22, 33, 44 or 55
+                     more rows.
+
+             ssttaattuuss--ffoorrmmaatt[[]] _f_o_r_m_a_t
+                     Specify the format to be used for each line of the status
+                     line.  The default builds the top status line from the
+                     various individual status options below.
 
              ssttaattuuss--iinntteerrvvaall _i_n_t_e_r_v_a_l
                      Update the status line every _i_n_t_e_r_v_a_l seconds.  By
@@ -1501,12 +1525,7 @@ OOPPTTIIOONNSS
              ssttaattuuss--lleefftt _s_t_r_i_n_g
                      Display _s_t_r_i_n_g (by default the session name) to the left
                      of the status line.  _s_t_r_i_n_g will be passed through
-                     strftime(3) and formats (see _F_O_R_M_A_T_S) will be expanded.
-                     It may also contain the special character sequence #[] to
-                     change the colour or attributes, for example
-                     ‘#[fg=red,bright]’ to set a bright red foreground.  See
-                     the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option for a description of
-                     colours and attributes.
+                     strftime(3).  Also see the _F_O_R_M_A_T_S and _S_T_Y_L_E_S sections.
 
                      For details on how the names and titles can be set see
                      the _N_A_M_E_S _A_N_D _T_I_T_L_E_S section.
@@ -1524,8 +1543,7 @@ OOPPTTIIOONNSS
 
              ssttaattuuss--lleefftt--ssttyyllee _s_t_y_l_e
                      Set the style of the left part of the status line.  For
-                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.
+                     how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              ssttaattuuss--ppoossiittiioonn [ttoopp | bboottttoomm]
                      Set the position of the status line.
@@ -1543,12 +1561,11 @@ OOPPTTIIOONNSS
 
              ssttaattuuss--rriigghhtt--ssttyyllee _s_t_y_l_e
                      Set the style of the right part of the status line.  For
-                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.
+                     how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              ssttaattuuss--ssttyyllee _s_t_y_l_e
                      Set status line style.  For how to specify _s_t_y_l_e, see the
-                     mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
+                     _S_T_Y_L_E_S section.
 
              uuppddaattee--eennvviirroonnmmeenntt[[]] _v_a_r_i_a_b_l_e
                      Set list of environment variables to be copied into the
@@ -1603,12 +1620,12 @@ OOPPTTIIOONNSS
              aaggggrreessssiivvee--rreessiizzee [oonn | ooffff]
                      Aggressively resize the chosen window.  This means that
                      ttmmuuxx will resize the window to the size of the smallest
-                     session for which it is the current window, rather than
-                     the smallest session to which it is attached.  The window
-                     may resize when the current window is changed on another
-                     sessions; this option is good for full-screen programs
-                     which support SIGWINCH and poor for interactive programs
-                     such as shells.
+                     or largest session (see the wwiinnddooww--ssiizzee option) for which
+                     it is the current window, rather than the session to
+                     which it is attached.  The window may resize when the
+                     current window is changed on another session; this option
+                     is good for full-screen programs which support SIGWINCH
+                     and poor for interactive programs such as shells.
 
              aallllooww--rreennaammee [oonn | ooffff]
                      Allow programs to change the window name using a terminal
@@ -1646,12 +1663,6 @@ OOPPTTIIOONNSS
              cclloocckk--mmooddee--ssttyyllee [1122 | 2244]
                      Set clock hour format.
 
-             ffoorrccee--hheeiigghhtt _h_e_i_g_h_t
-             ffoorrccee--wwiiddtthh _w_i_d_t_h
-                     Prevent ttmmuuxx from resizing a window to greater than _w_i_d_t_h
-                     or _h_e_i_g_h_t.  A value of zero restores the default unlim-
-                     ited setting.
-
              mmaaiinn--ppaannee--hheeiigghhtt _h_e_i_g_h_t
              mmaaiinn--ppaannee--wwiiddtthh _w_i_d_t_h
                      Set the width or height of the main (left or top) pane in
@@ -1663,7 +1674,7 @@ OOPPTTIIOONNSS
 
              mmooddee--ssttyyllee _s_t_y_l_e
                      Set window modes style.  For how to specify _s_t_y_l_e, see
-                     the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
+                     the _S_T_Y_L_E_S section.
 
              mmoonniittoorr--aaccttiivviittyy [oonn | ooffff]
                      Monitor for activity in the window.  Windows with activ-
@@ -1693,8 +1704,8 @@ OOPPTTIIOONNSS
 
              ppaannee--aaccttiivvee--bboorrddeerr--ssttyyllee _s_t_y_l_e
                      Set the pane border style for the currently active pane.
-                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.  Attributes are ignored.
+                     For how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
+                     Attributes are ignored.
 
              ppaannee--bbaassee--iinnddeexx _i_n_d_e_x
                      Like bbaassee--iinnddeexx, but set the starting index for pane num-
@@ -1708,8 +1719,8 @@ OOPPTTIIOONNSS
 
              ppaannee--bboorrddeerr--ssttyyllee _s_t_y_l_e
                      Set the pane border style for panes aside from the active
-                     pane.  For how to specify _s_t_y_l_e, see the
-                     mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.  Attributes are ignored.
+                     pane.  For how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
+                     Attributes are ignored.
 
              rreemmaaiinn--oonn--eexxiitt [oonn | ooffff]
                      A window with this flag set is not destroyed when the
@@ -1723,17 +1734,15 @@ OOPPTTIIOONNSS
 
              wwiinnddooww--aaccttiivvee--ssttyyllee _s_t_y_l_e
                      Set the style for the window’s active pane.  For how to
-                     specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
+                     specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              wwiinnddooww--ssttaattuuss--aaccttiivviittyy--ssttyyllee _s_t_y_l_e
                      Set status line style for windows with an activity alert.
-                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.
+                     For how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              wwiinnddooww--ssttaattuuss--bbeellll--ssttyyllee _s_t_y_l_e
                      Set status line style for windows with a bell alert.  For
-                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.
+                     how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              wwiinnddooww--ssttaattuuss--ccuurrrreenntt--ffoorrmmaatt _s_t_r_i_n_g
                      Like _w_i_n_d_o_w_-_s_t_a_t_u_s_-_f_o_r_m_a_t, but is the format used when
@@ -1741,19 +1750,16 @@ OOPPTTIIOONNSS
 
              wwiinnddooww--ssttaattuuss--ccuurrrreenntt--ssttyyllee _s_t_y_l_e
                      Set status line style for the currently active window.
-                     For how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.
+                     For how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              wwiinnddooww--ssttaattuuss--ffoorrmmaatt _s_t_r_i_n_g
                      Set the format in which the window is displayed in the
-                     status line window list.  See the _s_t_a_t_u_s_-_l_e_f_t option for
-                     details of special character sequences available.  The
-                     default is ‘#I:#W#F’.
+                     status line window list.  See the _F_O_R_M_A_T_S and _S_T_Y_L_E_S sec-
+                     tions.
 
              wwiinnddooww--ssttaattuuss--llaasstt--ssttyyllee _s_t_y_l_e
                      Set status line style for the last active window.  For
-                     how to specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee
-                     option.
+                     how to specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
 
              wwiinnddooww--ssttaattuuss--sseeppaarraattoorr _s_t_r_i_n_g
                      Sets the separator drawn between windows in the status
@@ -1761,11 +1767,27 @@ OOPPTTIIOONNSS
 
              wwiinnddooww--ssttaattuuss--ssttyyllee _s_t_y_l_e
                      Set status line style for a single window.  For how to
-                     specify _s_t_y_l_e, see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
+                     specify _s_t_y_l_e, see the _S_T_Y_L_E_S section.
+
+             wwiinnddooww--ssiizzee _l_a_r_g_e_s_t | _s_m_a_l_l_e_s_t | _m_a_n_u_a_l
+                     Configure how ttmmuuxx determines the window size.  If set to
+                     _l_a_r_g_e_s_t, the size of the largest attached session is
+                     used; if _s_m_a_l_l_e_s_t, the size of the smallest.  If _m_a_n_u_a_l,
+                     the size of a new window is set from the ddeeffaauulltt--ssiizzee
+                     option and windows are resized automatically.  See also
+                     the rreessiizzee--wwiinnddooww command and the aaggggrreessssiivvee--rreessiizzee
+                     option.
 
              wwiinnddooww--ssttyyllee _s_t_y_l_e
                      Set the default window style.  For how to specify _s_t_y_l_e,
-                     see the mmeessssaaggee--ccoommmmaanndd--ssttyyllee option.
+                     see the _S_T_Y_L_E_S section.
+
+             wwiinnddooww--ssiizzee [ssmmaalllleesstt | llaarrggeesstt | mmaannuuaall]
+                     Tell ttmmuuxx how to automatically size windows either the
+                     size of the smallest session containing the window, the
+                     size of the largest, or manual size.  See also the
+                     rreessiizzee--wwiinnddooww command and the ddeeffaauulltt--ssiizzee and
+                     aaggggrreessssiivvee--rreessiizzee options.
 
              wwrraapp--sseeaarrcchh [oonn | ooffff]
                      If this option is set, searches will wrap around the end
@@ -1868,9 +1890,16 @@ HHOOOOKKSS
 MMOOUUSSEE SSUUPPPPOORRTT
      If the mmoouussee option is on (the default is off), ttmmuuxx allows mouse events
      to be bound as keys.  The name of each key is made up of a mouse event
-     (such as ‘MouseUp1’) and a location suffix (one of ‘Pane’ for the con-
-     tents of a pane, ‘Border’ for a pane border or ‘Status’ for the status
-     line).  The following mouse events are available:
+     (such as ‘MouseUp1’) and a location suffix, one of the following:
+
+           Pane             the contents of a pane
+           Border           a pane border
+           Status           the status line window list
+           StatusLeft       the left part of the status line
+           StatusRight      the right part of the status line
+           StatusDefault    any other part of the status line
+
+     The following mouse events are available:
 
            WheelUp       WheelDown
            MouseDown1    MouseUp1      MouseDrag1   MouseDragEnd1
@@ -1935,8 +1964,20 @@ FFOORRMMAATTSS
      with ‘t:’ will convert it to a string, so if ‘#{window_activity}’ gives
      ‘1445765102’, ‘#{t:window_activity}’ gives ‘Sun Oct 25 09:25:02 2015’.
      The ‘b:’ and ‘d:’ prefixes are basename(3) and dirname(3) of the variable
-     respectively.  A prefix of the form ‘s/foo/bar/:’ will substitute ‘foo’
-     with ‘bar’ throughout.
+     respectively.  ‘q:’ will escape sh(1) special characters.  ‘E:’ will
+     expand the format twice, for example ‘#{E:status-left}’ is the result of
+     expanding the content of the ssttaattuuss--lleefftt option rather than the content
+     itself.  ‘T:’ is like ‘E:’ but also expands strftime(3) specifiers.
+     ‘S:’, ‘W:’ or ‘P:’ will loop over each session, window or pane and insert
+     the format once for each.  For windows and panes, two comma-separated
+     formats may be given: the second is used for the current window or active
+     pane.  For example, to get a list of windows formatted like the status
+     line:
+
+           #{W:#{E:window-status-format} ,#{E:window-status-current-format} }
+
+     A prefix of the form ‘s/foo/bar/:’ will substitute ‘foo’ with ‘bar’
+     throughout.
 
      In addition, the first line of a shell command’s output may be inserted
      using ‘#()’.  For example, ‘#(uptime)’ will insert the system’s uptime.
@@ -1980,6 +2021,7 @@ FFOORRMMAATTSS
      command_list_alias              Command alias if listing commands
      command_list_usage              Command usage if listing commands
      cursor_flag                     Pane cursor flag
+     cursor_character                Character at cursor in pane
      cursor_x                        Cursor X position in pane
      cursor_y                        Cursor Y position in pane
      history_bytes                   Number of bytes in window history
@@ -2049,12 +2091,10 @@ FFOORRMMAATTSS
      session_group_size              Size of session group
      session_group_list              List of sessions in group
      session_grouped                 1 if session in a group
-     session_height                  Height of session
      session_id                      Unique session ID
      session_many_attached           1 if multiple clients attached
      session_name           #S       Name of session
      session_stack                   Window indexes in most recent order
-     session_width                   Width of session
      session_windows                 Number of windows in session
      socket_path                     Server socket path
      start_time                      Server start time
@@ -2063,6 +2103,8 @@ FFOORRMMAATTSS
      window_activity_flag            1 if window has activity
      window_active                   1 if window active
      window_bell_flag                1 if window has bell
+     window_bigger                   1 if window is larger than client
+     window_end_flag                 1 if window has the highest index
      window_flags           #F       Window flags
      window_format                   1 if format is for a window (not assuming
                                      the current)
@@ -2074,14 +2116,73 @@ FFOORRMMAATTSS
                                      zoomed window panes
      window_linked                   1 if window is linked across sessions
      window_name            #W       Name of window
+     window_offset_x                 X offset into window if larger than
+                                     client
+     window_offset_y                 Y offset into window if larger than
+                                     client
      window_panes                    Number of panes in window
      window_silence_flag             1 if window has silence alert
      window_stack_index              Index in session most recent stack
+     window_start_flag               1 if window has the lowest index
      window_visible_layout           Window layout description, respecting
                                      zoomed window panes
      window_width                    Width of window
      window_zoomed_flag              1 if window is zoomed
      wrap_flag                       Pane wrap flag
+
+SSTTYYLLEESS
+     ttmmuuxx offers various options to specify the colour and attributes of
+     aspects of the interface, for example ssttaattuuss--ssttyyllee for the status line.
+     In addition, embedded styles may be specified in format options, such as
+     ssttaattuuss--lleefftt--ffoorrmmaatt, by enclosing them in ‘#[’ and ‘’].
+
+     A style may be the single term ‘default’ to specify the default style
+     (which may inherit from another option) or a space or comma separated
+     list of the following:
+
+     ffgg==ccoolloouurr
+             Set the foreground colour.  The colour is one of: bbllaacckk, rreedd,
+             ggrreeeenn, yyeellllooww, bblluuee, mmaaggeennttaa, ccyyaann, wwhhiittee; if supported the
+             bright variants bbrriigghhttrreedd, bbrriigghhttggrreeeenn, bbrriigghhttyyeellllooww; ccoolloouurr00 to
+             ccoolloouurr225555 from the 256-colour set; ddeeffaauulltt for the default
+             colour; tteerrmmiinnaall for the terminal default colour; or a hexadeci-
+             mal RGB string such as ‘#ffffff’.
+
+     bbgg==ccoolloouurr
+             Set the background colour.
+
+     nnoonnee    Set no attributes (turn off any active attributes).
+
+     bbrriigghhtt (or bboolldd), ddiimm, uunnddeerrssccoorree, bblliinnkk, rreevveerrssee, hhiiddddeenn, iittaalliiccss,
+             ssttrriikkeetthhrroouugghh, ddoouubbllee--uunnddeerrssccoorree, ccuurrllyy--uunnddeerrssccoorree,
+             ddootttteedd--uunnddeerrssccoorree, ddaasshheedd--uunnddeerrssccoorree
+             Set an attribute.  Any of the attributes may be prefixed with
+             ‘no’ to unset.
+
+     aalliiggnn==lleefftt (or nnooaalliiggnn), aalliiggnn==cceennttrree, aalliiggnn==rriigghhtt
+             Align text to the left, centre or right of the available space if
+             appropriate.
+
+     lliisstt==oonn, lliisstt==ffooccuuss, lliisstt==lleefftt--mmaarrkkeerr, lliisstt==rriigghhtt==mmaarrkkeerr, nnoolliisstt
+             Mark the position of the various window list components in the
+             ssttaattuuss--ffoorrmmaatt option: lliisstt==oonn marks the start of the list;
+             lliisstt==ffooccuuss is the part of the list that should be kept in focus
+             if the entire list won’t fit in the available space (typically
+             the current window); lliisstt==lleefftt--mmaarrkkeerr and lliisstt==rriigghhtt--mmaarrkkeerr mark
+             the text to be used to mark that text has been trimmed from the
+             left or right of the list if there is not enough space.
+
+     rraannggee==lleefftt, rraannggee==rriigghhtt, rraannggee==wwiinnddooww||XX, nnoorraannggee
+             Mark a range in the ssttaattuuss--ffoorrmmaatt option.  rraannggee==lleefftt and
+             rraannggee==rriigghhtt are the text used for the ‘StatusLeft’ and
+             ‘StatusRight’ mouse keys.  rraannggee==wwiinnddooww||XX is the range for a win-
+             dow passed to the ‘Status’ mouse key, where ‘X’ is a window
+             index.
+
+     Examples are:
+
+           fg=yellow bold underscore blink
+           bg=black,fg=default,noreverse
 
 NNAAMMEESS AANNDD TTIITTLLEESS
      ttmmuuxx distinguishes between names and titles.  Windows and sessions have
@@ -2107,7 +2208,7 @@ NNAAMMEESS AANNDD TTIITTLLEESS
              the window’s active pane.  See the aauuttoommaattiicc--rreennaammee option.
 
      When a pane is first created, its title is the hostname.  A pane’s title
-     can be set via the OSC title setting sequence, for example:
+     can be set via the title setting escape sequence, for example:
 
            $ printf ’\033]2;My Title\033\\’
 
@@ -2146,16 +2247,19 @@ EENNVVIIRROONNMMEENNTT
 
 SSTTAATTUUSS LLIINNEE
      ttmmuuxx includes an optional status line which is displayed in the bottom
-     line of each terminal.  By default, the status line is enabled (it may be
-     disabled with the ssttaattuuss session option) and contains, from left-to-
-     right: the name of the current session in square brackets; the window
-     list; the title of the active pane in double quotes; and the time and
-     date.
+     line of each terminal.
 
-     The status line is made of three parts: configurable left and right sec-
-     tions (which may contain dynamic content such as the time or output from
-     a shell command, see the ssttaattuuss--lleefftt, ssttaattuuss--lleefftt--lleennggtthh, ssttaattuuss--rriigghhtt,
-     and ssttaattuuss--rriigghhtt--lleennggtthh options below), and a central window list.  By
+     By default, the status line is enabled and one line in height (it may be
+     disabled or made multiple lines with the ssttaattuuss session option) and con-
+     tains, from left-to-right: the name of the current session in square
+     brackets; the window list; the title of the active pane in double quotes;
+     and the time and date.
+
+     Each line of the status line is configured with the ssttaattuuss--ffoorrmmaatt option.
+     The default is made of three parts: configurable left and right sections
+     (which may contain dynamic content such as the time or output from a
+     shell command, see the ssttaattuuss--lleefftt, ssttaattuuss--lleefftt--lleennggtthh, ssttaattuuss--rriigghhtt, and
+     ssttaattuuss--rriigghhtt--lleennggtthh options below), and a central window list.  By
      default, the window list shows the index, name and (if any) flag of the
      windows present in the current session in ascending numerical order.  It
      may be customised with the _w_i_n_d_o_w_-_s_t_a_t_u_s_-_f_o_r_m_a_t and
@@ -2241,13 +2345,16 @@ SSTTAATTUUSS LLIINNEE
 
              This command works only from inside ttmmuuxx.
 
-     ddiissppllaayy--mmeessssaaggee [--pp] [--cc _t_a_r_g_e_t_-_c_l_i_e_n_t] [--tt _t_a_r_g_e_t_-_p_a_n_e] [_m_e_s_s_a_g_e]
+     ddiissppllaayy--mmeessssaaggee [--aappvv] [--cc _t_a_r_g_e_t_-_c_l_i_e_n_t] [--tt _t_a_r_g_e_t_-_p_a_n_e] [_m_e_s_s_a_g_e]
                    (alias: ddiissppllaayy)
              Display a message.  If --pp is given, the output is printed to std-
              out, otherwise it is displayed in the _t_a_r_g_e_t_-_c_l_i_e_n_t status line.
              The format of _m_e_s_s_a_g_e is described in the _F_O_R_M_A_T_S section; infor-
              mation is taken from _t_a_r_g_e_t_-_p_a_n_e if --tt is given, otherwise the
              active pane for the session attached to _t_a_r_g_e_t_-_c_l_i_e_n_t.
+
+             --vv prints verbose logging as the format is parsed and --aa lists
+             the format variables and their values.
 
 BBUUFFFFEERRSS
      ttmmuuxx maintains a set of named _p_a_s_t_e _b_u_f_f_e_r_s.  Each buffer may be either
@@ -2389,7 +2496,7 @@ MMIISSCCEELLLLAANNEEOOUUSS
              woken using wwaaiitt--ffoorr --SS with the same channel.  When --LL is used,
              the channel is locked and any clients that try to lock the same
              channel are made to wait until the channel is unlocked with
-             wwaaiitt--ffoorr --UU.  This command only works from outside ttmmuuxx.
+             wwaaiitt--ffoorr --UU.
 
 TTEERRMMIINNFFOO EEXXTTEENNSSIIOONNSS
      ttmmuuxx understands some unofficial extensions to terminfo(5):
@@ -2400,6 +2507,11 @@ TTEERRMMIINNFFOO EEXXTTEENNSSIIOONNSS
              this may be used to change the cursor colour from inside ttmmuuxx:
 
                    $ printf ’\033]12;red\033\\’
+
+     _S_m_u_l_x   Set a styled underline.  The single parameter is one of: 0 for no
+             underline, 1 for normal underline, 2 for double underline, 3 for
+             curly underline, 4 for dotted underline and 5 for dashed under-
+             line.
 
      _S_s, _S_e  Set or reset the cursor style.  If set, a sequence such as this
              may be used to change the cursor to an underline:
@@ -2412,7 +2524,7 @@ TTEERRMMIINNFFOO EEXXTTEENNSSIIOONNSS
      _T_c      Indicate that the terminal supports the ‘direct colour’ RGB
              escape sequence (for example, \e[38;2;255;255;255m).
 
-             If supported, this is used for the OSC initialize colour escape
+             If supported, this is used for the initialize colour escape
              sequence (which may be enabled by adding the ‘initc’ and ‘ccc’
              capabilities to the ttmmuuxx terminfo(5) entry).
 
